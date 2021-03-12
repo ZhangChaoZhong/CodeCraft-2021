@@ -8,8 +8,8 @@
 #include "common.h"
 class Helper {
 public:
-    void printServer(Server &obj);
-    void printSale(Sale &obj);
+    void printServerType(ServerType &obj);
+    void printVMType(VMType &obj);
     void printRequest(Request &obj);
     void printPurchaser(Purchaser &obj);
     void printMigration(Migration &obj);

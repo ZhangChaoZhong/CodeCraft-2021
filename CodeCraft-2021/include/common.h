@@ -10,27 +10,37 @@
 //售卖的服务器数量 不超过1000
 
 /*
- * 服务器
+ * 服务器类型
  *
  */
-struct Server{
-    std::string serverType;  //服务器类型[,20]
+struct ServerType{
+    std::string serverTypeName;  //服务器类型[,20]
     int cpus;             //CPU核数  [1,1024]
     int memory;           //内存大小  [1,1024]
     int hardCost;         //硬件成本  [1,5x10^5]
     int energyCost;       //能耗成本  [,5000]
+};
+
+struct Server{
+    std::string serverTypeName; //服务器类型
     int id;               //服务器id  int范围 [0,2^32]
+    std::pair<int,int> A;
+    std::pair<int,int> B;
 };
 
 /*
  * 售卖序列
  *
  */
-struct Sale{
-    std::string serverType;  //服务器类型[,20]
+struct VMType{
+    std::string vmTypeName;  //虚拟机类型[,20]
     int cpus;             //CPU核数  [1,1024]
     int memory;           //内存大小  [1,1024]
     int isDouble;         //是否双结点部署 0不是  1是
+};
+struct VM{
+    std::string  vmTypeName;        //虚拟机类型
+    int vmId;               //虚拟机id  int范围 [0,2^32]
 };
 
 /*
@@ -38,12 +48,14 @@ struct Sale{
  * 用户请求不超过10^5
  */
 struct Request{
-    char requestType[4];   //请求类型，add 或者 del
-    std::string serverType;   //服务器类型[,20]
-    int id;                //服务器id  int范围 [0,2^32]
+    std::string requestType;   //请求类型，add 或者 del
+    std::string vmTypeName;   //虚拟机类型[,20]
+    int vmId;              //服务器id  int范围 [0,2^32]
 };
 
 /***************************************************/
+
+
 
 /*
  * 购买序列

@@ -1,0 +1,4 @@
+/Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -DCMAKE_BUILD_TYPE=Debug -G "CodeBlocks - Unix Makefiles" /Users/zcz/CLionProjects/zczPro/CodeCraft-2021/CodeCraft-2021
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /Users/zcz/CLionProjects/zczPro/CodeCraft-2021/CodeCraft-2021/cmake-build-debug
