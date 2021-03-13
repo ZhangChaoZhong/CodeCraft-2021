@@ -7,242 +7,112 @@
 #include <algorithm>
 #include <string>
 #include <iostream>
-#include <sys/mman.h>
-#include <unistd.h>
-#include <fcntl.h>
+//#include <sys/mman.h>
+//#include <unistd.h>
+//#include <fcntl.h>
+//#include <cstdio>
 using namespace std;
 
 Solution::Solution(string &filename){
     this->mFilename = filename;
     this->mDays=0;
     this->sizeFlag = 0;
+    this->mServerTypeNum = 0;
+    this->mVMTypeNum=0;
+}
+Solution::Solution(){
+    this->mDays=0;
+    this->sizeFlag = 0;
+    this->mServerTypeNum = 0;
+    this->mVMTypeNum=0;
 }
 
 void Solution::input() {
+
     //服务器类型,请求类型
     string serverTypeName,VMTypeName,requestType;
     //cpu核数,内存,硬件成本，能耗成本，是否双结点部署
-    int cpus = 0, memory = 0, hardCost = 0, energyCost = 0,isDouble = 0,vmId=0;
+    string cpus, memory, hardCost, energyCost,isDouble,vmId;
 
-    int fd = open(this->mFilename.c_str(), O_RDONLY);
-    int buf_len = 40 * 1024 * 1024;  // 定义buffer大小40M
-    char *buf = (char *) mmap(nullptr, buf_len, PROT_READ, MAP_PRIVATE, fd, 0);
-    close(fd);
-
-    char *currentChar = buf;
-    int currentNum = 0;
-    string curStr;
+    //test 输入
+    FILE *fp = freopen(this->mFilename.c_str(),"r",stdin);
 
     /**
      * 购买服务器序列 每种类型买100
      *
      * */
-    do {
-        currentNum = 10 * currentNum + *currentChar - '0'; // 每次取出数字第一位
-        currentChar++;
-    } while (*currentChar != '\n'); // 前两个数字以逗号结尾
-    this->mServerTypeNum = currentNum;   //服务器类型数量
-    currentNum = 0, currentChar++; //跳过换行
-
-    //cout << serverTypeNum << endl;
-//    this->mServerTypeByCpu = new ServerType[serverTypeNum];
-//    this->mServerTypeByMemory = new ServerType[serverTypeNum];
+    cin >> this->mServerTypeNum;  //服务器类型数量
+    //cout << this->mServerTypeNum << endl;
     for(int i=0;i<this->mServerTypeNum;i++){
-        curStr = "";
-        // 读取 serverTypeName
-        do {
-            if(*currentChar != '(') curStr += *currentChar; // 每次取出数字第一位
-            currentChar++;
-        } while (*currentChar != ','); // 前两个数字以逗号结尾
-        serverTypeName = curStr;
-        currentNum = 0, currentChar+=2;
-
-        // 读取 cpus
-        do {
-            currentNum = 10 * currentNum + *currentChar - '0'; // 每次取出数字第一位
-            currentChar++;
-        } while (*currentChar != ','); // 前两个数字以逗号结尾
-        cpus = currentNum;
-        currentNum = 0, currentChar+=2; //跳过逗号和空格
-
-        // 读取 memory
-        do {
-            currentNum = 10 * currentNum + *currentChar - '0';
-            currentChar++;
-        } while (*currentChar != ',');
-        memory = currentNum;
-        currentNum = 0, currentChar+=2;
-
-        // 读取 hardCost
-        do {
-            currentNum = 10 * currentNum + *currentChar - '0';
-            currentChar++;
-        } while (*currentChar != ',');
-        hardCost = currentNum;
-        currentNum = 0, currentChar+=2;
-
-        // 读取 energyCost
-        do {
-            if(*currentChar != ')')
-                currentNum = 10 * currentNum + *currentChar - '0';
-            currentChar++;
-        } while (*currentChar != '\n');
-        energyCost = currentNum;
-        currentNum = 0, currentChar++;
-
-        ServerType t = {serverTypeName,cpus,memory,hardCost,energyCost};
-        this->mServerTypeByCpu[i]=t;
-        this->mServerTypeByMemory[i]=t;
-        this->mServerTypeMap[serverTypeName] = t;
-        //this->mServer.push_back({serverTypeName,this->mServerId++});
-        // cout << serverType << "," << cpus << "," << memory << "," << hardCost << "," << energyCost << endl;
+        cin >> serverTypeName >> cpus >> memory >> hardCost >> energyCost;
+        generateServer(i,serverTypeName,cpus,memory,hardCost,energyCost);
     }
 
     sort(this->mServerTypeByCpu,this->mServerTypeByCpu+this->mServerTypeNum,serverTypeCmpCpu);           //按cpu排序
     sort(this->mServerTypeByMemory,this->mServerTypeByMemory+this->mServerTypeNum,serverTypeCmpMemory);  //按内存排序
 
-    //cout<<"服务器\n";
-    //for(int i=0;i<serverTypeNum;i++) {               //加入哈希表
-    //     this->mHelper.printServerType(this->mServerTypeByMemory[i]);
-    //}
+//    cout<<"服务器\n";
+//    for(int i=0;i<this->mServerTypeNum;i++) {               //加入哈希表
+//         this->mHelper.printServerType(this->mServerTypeByMemory[i]);
+//    }
 
     /**
      * 售卖序列
      *
      * */
-    int saleNum;    //售卖数量
-    do {
-        currentNum = 10 * currentNum + *currentChar - '0'; // 每次取出数字第一位
-        currentChar++;
-    } while (*currentChar != '\n'); // 前两个数字以逗号结尾
-    saleNum = currentNum;
-    currentNum = 0, currentChar++; //跳过换行
-    //cout << saleNum << endl;
-
-    for(int i=0;i<saleNum;i++){
-        curStr = "";
-        // 读取 VMTypeName
-        do {
-            if(*currentChar != '(') curStr += *currentChar; // 每次取出数字第一位
-            currentChar++;
-        } while (*currentChar != ','); // 前两个数字以逗号结尾
-        VMTypeName = curStr;
-        currentNum = 0, currentChar+=2;
-
-        // 读取 cpus
-        do {
-            currentNum = 10 * currentNum + *currentChar - '0'; // 每次取出数字第一位
-            currentChar++;
-        } while (*currentChar != ','); // 前两个数字以逗号结尾
-        cpus = currentNum;
-        currentNum = 0, currentChar+=2; //跳过逗号和空格
-
-        // 读取 memory
-        do {
-            currentNum = 10 * currentNum + *currentChar - '0';
-            currentChar++;
-        } while (*currentChar != ',');
-        memory = currentNum;
-        currentNum = 0, currentChar+=2;
-
-        // 读取 isDouble
-        do {
-            currentNum = 10 * currentNum + *currentChar - '0';
-            currentChar++;
-        } while (*currentChar != ')');
-        isDouble = currentNum;
-        currentNum = 0, currentChar+=2;
-
-        VMType t={VMTypeName,cpus,memory,isDouble};
-        this->mVMTypeByCpu[i] = t;
-        this->mVMTypeByMemory[i] = t;
-        this->mMVTypeMap[VMTypeName] = t;
-
+    cin >> this->mVMTypeNum;   //售卖数量
+    for(int i=0;i<this->mVMTypeNum;i++){
+        cin >> VMTypeName >> cpus >> memory >> isDouble;
+        generateVm(i,VMTypeName,cpus,memory,isDouble);
         //this->mVM.push_back({VMTypeName,this->mVMId++});
         //cout << serverType<<" "<<cpus << " " << memory <<" " << isDouble <<endl;
     }
 
 
-    sort(this->mVMTypeByCpu,this->mVMTypeByCpu+saleNum,vmTypeCmpCpu);           //按cpu排序
-    sort(this->mVMTypeByMemory,this->mVMTypeByMemory+saleNum,vmTypeCmpMemory);  //按内存排序
+    sort(this->mVMTypeByCpu,this->mVMTypeByCpu+this->mVMTypeNum,vmTypeCmpCpu);           //按cpu排序
+    sort(this->mVMTypeByMemory,this->mVMTypeByMemory+this->mVMTypeNum,vmTypeCmpMemory);  //按内存排序
 
-    //cout<<"虚拟机\n";
-    //for(int i=0;i<saleNum;i++)
-    //    this->mHelper.printVMType(this->mVMTypeByCpu[i]);
+//    cout<<"虚拟机\n";
+//    cout<< this->mVMTypeNum << endl;
+//    for(int i=0;i<this->mVMTypeNum;i++)
+//        this->mHelper.printVMType(this->mVMTypeByCpu[i]);
 
     /**
      * 请求序列
      *
      * */
-
-    //请求天数
-    do {
-        currentNum = 10 * currentNum + *currentChar - '0'; // 每次取出数字第一位
-        currentChar++;
-    } while (*currentChar != '\n'); // 前两个数字以逗号结尾
-    this->mDays = currentNum;
-    currentNum = 0, currentChar++; //跳过换行
-    //cout << days << endl;
-
+    cin >> this->mDays;  //请求天数
+    //cout << this->mDays << endl;
     for (int i = 0; i < this->mDays; ++i) {
-        int requestNum;  //当天请求数
-        do {
-            currentNum = 10 * currentNum + *currentChar - '0'; // 每次取出数字第一位
-            currentChar++;
-        } while (*currentChar != '\n'); // 前两个数字以逗号结尾
-        requestNum = currentNum;
-        currentNum = 0, currentChar++; //跳过换行
+        int requestNum=0;  //当天请求数
+        cin >> requestNum;
         //cout << requestNum << endl;
-
         vector<Request> vec;
         vec.erase(vec.begin(),vec.end());   //先清空容器
 
         for(int j=0;j<requestNum;j++){
-            curStr = "";
-            // 读取 requestType
-            do {
-                if(*currentChar != '(') curStr += *currentChar; // 每次取出数字第一位
-                currentChar++;
-            } while (*currentChar != ','); // 前两个数字以逗号结尾
-            requestType = curStr;
-            currentNum = 0, currentChar+=2;
-
-            if(requestType == "add"){
-                curStr = "";
-                // 读取 VMTypeName
-                do {
-                    curStr += *currentChar; // 每次取出数字第一位
-                    currentChar++;
-                } while (*currentChar != ','); // 前两个数字以逗号结尾
-                VMTypeName = curStr;
-                currentNum = 0, currentChar+=2;
-
-                this->vmToVMType[vmId] = VMTypeName;
+            cin >> requestType;
+            if(requestType[1] == 'a'){
+                cin >> VMTypeName >> vmId;
+                generateRequest(vec,requestType,VMTypeName,vmId);
             }else{
-                VMTypeName = "";
+                cin >> vmId;
+                generateRequest(vec,requestType,vmId);
             }
-
-            // 读取服务器 serverId
-            do {
-                currentNum = 10 * currentNum + *currentChar - '0';
-                currentChar++;
-            } while (*currentChar != ')');
-            vmId = currentNum;
-            currentNum = 0, currentChar+=2;
-
-            Request req = {requestType,VMTypeName,vmId};
-            vec.push_back(req);
-            //cout << requestType << " " << id <<endl;
         }
         this->mRequest.push_back(vec);
     }
-    //cout << "input over" << endl;
+    fclose(fp);
 }
 
 void Solution::run() {
     this->input();
     this->judge();
     //this->printTest();
+
+//    for(int i=0;i<100;i++){
+//        this->mHelper.printServer(this->mServer[i]);
+//    }
 }
 
 void Solution::write_answer() {
@@ -266,19 +136,96 @@ void Solution::printTest(){
 //    }
 }
 
+// 解析用户添加请求
+void Solution::generateRequest(vector<Request> &vec,string &op,string &reqVmType,string &reqId){
+    string _op,_reqVmType;
+    int _reqId = 0;
+    for(int i=0;i<reqId.size()-1;i++){
+        _reqId = _reqId*10 + reqId[i] - '0';
+    }
+    _op = op.substr(1,op.size() -2);
+    _reqVmType = reqVmType.substr(0,reqVmType.size() -1);
+    Request req = {_op,_reqVmType,_reqId};
+    vec.push_back(req);
+    //cout << op <<"-" <<_op<<endl;
+    //this->mHelper.printRequest(req);
+}
+
+// 解析用户删除请求
+void Solution::generateRequest(vector<Request> &vec,string &op,string &reqId){
+    string _op;
+    int _reqId=0;
+    for(int i=0;i<reqId.size()-1;i++){
+        _reqId = _reqId*10 + reqId[i] - '0';
+    }
+    _op = op.substr(1,op.size() - 2);
+    Request req = {_op,"",_reqId};
+    vec.push_back(req);
+    //cout << op <<"-" <<_op<<endl;
+    //this->mHelper.printRequest(req);
+}
+void Solution::generateVm(int index,string &vmType,string &vmCpuCores,string &vmMemory,string &vmTwoNodes){
+    string _vmType;
+    for(int i=1;i<vmType.size() -1;i++){
+        _vmType += vmType[i];
+    }
+
+    int _vmCpuCores = 0,_vmMemory=0,_vmTwoNodes=0;
+    for(int i=0;i<vmCpuCores.size()-1;i++){
+        _vmCpuCores = _vmCpuCores*10 + vmCpuCores[i] - '0';
+    }
+    for(int i=0;i<vmMemory.size()-1;i++){
+        _vmMemory = _vmMemory*10 + vmMemory[i] - '0';
+    }
+    if(vmTwoNodes[0] == '1'){
+        _vmTwoNodes = 1;
+    }
+    else{
+        _vmTwoNodes =0;
+    }
+    VMType t={_vmType,_vmCpuCores,_vmMemory,_vmTwoNodes};
+    this->mVMTypeByCpu[index] = t;
+    this->mVMTypeByMemory[index] = t;
+    this->mMVTypeMap[_vmType] = t;
+}
+void Solution::generateServer(int index,string &serverType,string &cpuCores,string &memorySize,string &serverCost,string &powerCost){
+    string _serverType;
+    for(int i =1;i<serverType.size() -1;i++){
+        _serverType += serverType[i];
+    }
+    int _cpuCores =0,_memorySize=0,_serverCost=0,_powerCost=0;
+
+    for(int i=0;i<cpuCores.size() -1;i++){
+        _cpuCores = 10*_cpuCores + cpuCores[i] - '0';
+    }
+    for(int i=0;i<memorySize.size() -1;i++){
+        _memorySize = 10*_memorySize + memorySize[i] - '0';
+    }
+    for(int i=0;i<serverCost.size() -1;i++){
+        _serverCost = 10*_serverCost + serverCost[i] - '0';
+    }
+    for(int i=0;i<powerCost.size()-1;i++){
+        _powerCost = 10*_powerCost + powerCost[i] - '0';
+    }
+    ServerType t = {_serverType,_cpuCores,_memorySize,_serverCost,_powerCost};
+    this->mServerTypeByCpu[index]=t;
+    this->mServerTypeByMemory[index]=t;
+    this->mServerTypeMap[_serverType] = t;
+}
+
 void Solution::judge(){
     int total=0;
     for (int i = 0; i < this->mDays; ++i) {
         total+=this->mRequest[i].size();
     }
     //cout << total << endl;
-    int num =  total/179957.0*12000;  //12000     179957
+    //int num =  total/179957.0*100000;  //12000     179957
+    int num=75000;
     //cout << num << endl;
     int aveNum = num/this->mServerTypeNum;
     //long long int sum=0;
     int curId=0;    //当前服务器id
     for (int i = 0; i < this->mDays; ++i) {
-
         if(i == 0){
             cout << "(purchase, " << this->mServerTypeNum << ")"<< endl;
             for (int j = 0; j < this->mServerTypeNum; ++j) {    //先全部买
@@ -292,7 +239,7 @@ void Solution::judge(){
                 //sum += aveNum*this->mServerTypeByCpu[j].hardCost;
             }
         }else{
-            cout << "(purchase,  0)"<< endl;
+            cout << "(purchase, 0)"<< endl;
         }
 
         cout << "(migration, 0)"<< endl;
@@ -303,26 +250,17 @@ void Solution::judge(){
          */
         this->sizeFlag = 0; //每次进入之前，将标记置为0
         deploy(i,0,curId);
-
-
-
-
-//        //1.购买
-//        this->purchase();
-//        //2.迁移
-//        this->migrate();
-//        //3.部署
-//        this->deploy();
     }
     //cout<< sum << endl;
-}
-
-void Solution::purchase(){
 
 }
-void Solution::migrate(){
 
-}
+//void Solution::purchase(){
+//
+//}
+//void Solution::migrate(){
+//
+//}
 void Solution::deploy(int i,int k,int &curId){
     int j;
     for (j = k; j < this->mRequest[i].size() && curId < this->mServerId; ++j) {
@@ -334,19 +272,20 @@ void Solution::deploy(int i,int k,int &curId){
             int AMemory = curServer.A.second/2;
             int BCpus = curServer.B.first/2;
             int BMemory = curServer.B.second/2;
-            int curCpus = vmType.cpus/2;
-            int curMemory = vmType.memory/2;
+            int curCpus = vmType.cpus;
+            int curMemory = vmType.memory;
             if(vmType.isDouble){    //双结点
-                if(ACpus >= curCpus && AMemory >= curMemory && BCpus >= curCpus && BMemory >= curMemory ){
-                    this->mServer[curId].A.first -= curCpus;
-                    this->mServer[curId].A.second -= curMemory;
-                    this->mServer[curId].B.first -= curCpus;
-                    this->mServer[curId].B.second -= curMemory;
+                if(ACpus >= curCpus/2 && AMemory >= curMemory/2 && BCpus >= curCpus/2 && BMemory >= curMemory/2 ){
+                    this->mServer[curId].A.first -= curCpus/2;
+                    this->mServer[curId].A.second -= curMemory/2;
+                    this->mServer[curId].B.first -= curCpus/2;
+                    this->mServer[curId].B.second -= curMemory/2;
                     this->vmToServer[curReq.vmId]= make_pair(curId,0);    //虚拟机id映射到<服务器id,结点(0双结点，1:A结点,2:B结点)>
                     cout << "("<< curId << ")"<< endl;
+                    curId++;
                 }else{
                     if(this->sizeFlag > this->mServerId){
-                        //cout << "超标";
+                        cout << "超标\n";
                         return;
                     }
                     this->sizeFlag ++;
@@ -359,15 +298,17 @@ void Solution::deploy(int i,int k,int &curId){
                     this->mServer[curId].A.second -= curMemory;
                     this->vmToServer[curReq.vmId]= make_pair(curId,1);
                     cout << "("<< curId << ", A)"<< endl;
+                    curId++;
                 }
                 else if(BCpus >= curCpus && BMemory >= curMemory ){
                     this->mServer[curId].B.first -= curCpus;
                     this->mServer[curId].B.second -= curMemory;
                     this->vmToServer[curReq.vmId]= make_pair(curId,2);
                     cout << "("<< curId << ", B)"<< endl;
+                    curId++;
                 }else{
                     if(this->sizeFlag > this->mServerId){
-                        //cout << "超标";
+                        cout << "超标\n";
                         return;
                     }
                     this->sizeFlag ++;
@@ -377,14 +318,14 @@ void Solution::deploy(int i,int k,int &curId){
             }
         }else{  //(del, 虚拟机id)
             VMType vmTypeTmp = this->mMVTypeMap[this->vmToVMType[curReq.vmId]];
-            int curCpus = vmTypeTmp.cpus/2;
-            int curMemory = vmTypeTmp.memory/2;
+            int curCpus = vmTypeTmp.cpus;
+            int curMemory = vmTypeTmp.memory;
             int targetServerId = this->vmToServer[curReq.vmId].first;
             if(vmTypeTmp.isDouble){//是否为双结点
-                this->mServer[targetServerId].A.first += curCpus;    //先按vmid找服务器id，再找到对应服务器
-                this->mServer[targetServerId].A.second += curMemory;
-                this->mServer[targetServerId].B.first += curCpus;
-                this->mServer[targetServerId].B.second += curMemory;
+                this->mServer[targetServerId].A.first += curCpus/2;    //先按vmid找服务器id，再找到对应服务器
+                this->mServer[targetServerId].A.second += curMemory/2;
+                this->mServer[targetServerId].B.first += curCpus/2;
+                this->mServer[targetServerId].B.second += curMemory/2;
             }else{
                 if(this->vmToServer[curReq.vmId].second == 1){  //A结点
                     this->mServer[targetServerId].A.first += curCpus;    //先按vmid找服务器id，再找到对应服务器

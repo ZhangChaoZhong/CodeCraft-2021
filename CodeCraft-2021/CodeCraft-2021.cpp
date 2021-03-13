@@ -8,9 +8,9 @@ int main() {
     // TODO:write standard output
     // TODO:fflush(stdout);
 
-    //string txtPath = "input.txt";
     string txtPath = "training-2.txt";
     Solution solution(txtPath);
+    //Solution solution;
     solution.run();
     return 0;
 }

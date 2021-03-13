@@ -35,3 +35,7 @@ void Helper::printDeployment(Deployment &obj) {
     if (obj.node == '0') cout << obj.id << endl;
     else cout << obj.id << "," << obj.node << endl;
 }
+
+void Helper::printServer(Server &obj){
+    cout << obj.id << "," << obj.serverTypeName  << ",(" << obj.A.first <<","<<obj.A.second << ")," << "(" << obj.B.first <<","<<obj.B.second << ")"<< endl;
+}

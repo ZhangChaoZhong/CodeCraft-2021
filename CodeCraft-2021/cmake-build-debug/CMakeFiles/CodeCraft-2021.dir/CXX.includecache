@@ -37,10 +37,4 @@ string
 -
 iostream
 -
-sys/mman.h
--
-unistd.h
--
-fcntl.h
--
 

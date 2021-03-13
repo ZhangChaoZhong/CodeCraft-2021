@@ -1,3 +1,0 @@
-/Users/zcz/CLionProjects/zczPro/CodeCraft-2021/build/CMakeFiles/rebuild_cache.dir
-/Users/zcz/CLionProjects/zczPro/CodeCraft-2021/build/CMakeFiles/edit_cache.dir
-/Users/zcz/CLionProjects/zczPro/CodeCraft-2021/build/CMakeFiles/CodeCraft-2021.dir

@@ -9,11 +9,13 @@
 class Helper {
 public:
     void printServerType(ServerType &obj);
+    void printServer(Server &obj);
     void printVMType(VMType &obj);
     void printRequest(Request &obj);
     void printPurchaser(Purchaser &obj);
     void printMigration(Migration &obj);
     void printDeployment(Deployment &obj);
+    void generateServer(std::string &serverType,std::string &cpuCores,std::string &memorySize,std::string &serverCost,std::string &powerCost);
 };
 
 

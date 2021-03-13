@@ -15,7 +15,7 @@
 class Solution {
 public:
     Solution(std::string &filename);
-
+    Solution();
     void run();
 
     void input();
@@ -26,27 +26,17 @@ public:
 
     void judge();
 
-    void purchase();
-
-    void migrate();
+//    void purchase();
+//
+//    void migrate();
 
     void deploy(int i,int k,int &curId);
 
-//    static bool serverTypeCmp(ServerType &a,ServerType& b){ //从小到大
-//        if(a.hardCost == b.hardCost){
-//            if(a.cpus == b.cpus){
-//                if(a.memory == b.memory){
-//                    return a.energyCost < b.energyCost; //能耗 小
-//                } else{
-//                    return a.memory < b.memory; //内存 小
-//                }
-//            }else {
-//                return a.cpus < b.cpus;     //cpu 小
-//            }
-//        }else {
-//            return a.hardCost < b.hardCost;     //硬件成本小的
-//        }
-//    };
+    void generateServer(int index,std::string &serverType,std::string &cpuCores,std::string &memorySize,std::string &serverCost,std::string &powerCost);
+
+    void generateVm(int index,std::string &vmType,std::string &vmCpuCores,std::string &vmMemory,std::string &vmTwoNodes);
+    void generateRequest(std::vector<Request> &vec,std::string &op,std::string &reqVmType,std::string &reqId);
+    void generateRequest(std::vector<Request> &vec,std::string &op,std::string &reqId);
     static bool serverTypeCmpCpu(const ServerType &a,const ServerType &b){
         return a.cpus > b.cpus;     //不能写>=
     };
@@ -84,6 +74,7 @@ public:
     std::unordered_map<int,std::pair<int,int>> vmToServer;         //虚拟机id映射到<服务器id,结点(0双结点，1:A结点,2:B结点)>
     std::unordered_map<int,std::string> vmToVMType; //虚拟机id映射到虚拟机类型
     int mServerTypeNum;
+    int mVMTypeNum;
     int sizeFlag;   //遍历过的服务器个数
 };
 
