@@ -25,7 +25,7 @@ void Solution::input() {
     int cpus = 0, memory = 0, hardCost = 0, energyCost = 0,isDouble = 0,vmId=0;
 
     int fd = open(this->mFilename.c_str(), O_RDONLY);
-    int buf_len = 40 * 1024 * 1024;  // 定义buffer大小
+    int buf_len = 40 * 1024 * 1024;  // 定义buffer大小40M
     char *buf = (char *) mmap(nullptr, buf_len, PROT_READ, MAP_PRIVATE, fd, 0);
     close(fd);
 
@@ -267,11 +267,18 @@ void Solution::printTest(){
 }
 
 void Solution::judge(){
-    int num =23300; //19900
+    int total=0;
+    for (int i = 0; i < this->mDays; ++i) {
+        total+=this->mRequest[i].size();
+    }
+    //cout << total << endl;
+    int num =  total/179957.0*12000;  //12000     179957
+    //cout << num << endl;
     int aveNum = num/this->mServerTypeNum;
     //long long int sum=0;
     int curId=0;    //当前服务器id
     for (int i = 0; i < this->mDays; ++i) {
+
         if(i == 0){
             cout << "(purchase, " << this->mServerTypeNum << ")"<< endl;
             for (int j = 0; j < this->mServerTypeNum; ++j) {    //先全部买
@@ -287,13 +294,14 @@ void Solution::judge(){
         }else{
             cout << "(purchase,  0)"<< endl;
         }
-        //cout<< sum << endl;
+
         cout << "(migration, 0)"<< endl;
 
         /**
          * 当前服务器不满足，购买新的服务器
          * 最大CPU，内存
          */
+        this->sizeFlag = 0; //每次进入之前，将标记置为0
         deploy(i,0,curId);
 
 
@@ -306,6 +314,7 @@ void Solution::judge(){
 //        //3.部署
 //        this->deploy();
     }
+    //cout<< sum << endl;
 }
 
 void Solution::purchase(){
@@ -329,12 +338,12 @@ void Solution::deploy(int i,int k,int &curId){
             int curMemory = vmType.memory/2;
             if(vmType.isDouble){    //双结点
                 if(ACpus >= curCpus && AMemory >= curMemory && BCpus >= curCpus && BMemory >= curMemory ){
-                    cout << "("<< curId << ")"<< endl;
                     this->mServer[curId].A.first -= curCpus;
                     this->mServer[curId].A.second -= curMemory;
                     this->mServer[curId].B.first -= curCpus;
                     this->mServer[curId].B.second -= curMemory;
                     this->vmToServer[curReq.vmId]= make_pair(curId,0);    //虚拟机id映射到<服务器id,结点(0双结点，1:A结点,2:B结点)>
+                    cout << "("<< curId << ")"<< endl;
                 }else{
                     if(this->sizeFlag > this->mServerId){
                         //cout << "超标";
