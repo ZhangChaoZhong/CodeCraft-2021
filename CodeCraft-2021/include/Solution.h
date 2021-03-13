@@ -8,6 +8,7 @@
 #include <iostream>
 #include <vector>
 #include <list>
+#include <set>
 #include <unordered_map>
 #include "common.h"
 #include "Helper.h"
@@ -37,7 +38,7 @@ public:
     void generateVm(int index,std::string &vmType,std::string &vmCpuCores,std::string &vmMemory,std::string &vmTwoNodes);
     void generateRequest(std::vector<Request> &vec,std::string &op,std::string &reqVmType,std::string &reqId);
     void generateRequest(std::vector<Request> &vec,std::string &op,std::string &reqId);
-    static bool serverTypeCmpCpu(const ServerType &a,const ServerType &b){
+    static bool serverTypeCmpCpu(const ServerType &a,const ServerType &b){  //cpu从大到小
         return a.cpus > b.cpus;     //不能写>=
     };
     static bool serverTypeCmpMemory(const ServerType &a,const ServerType &b){  //内存从大到小
@@ -49,6 +50,9 @@ public:
     static bool vmTypeCmpMemory(const VMType &a,const VMType &b){   //内存从大到小
         return a.memory > b.memory;
     };
+    static bool serverTypeCmpPercent(const ServerType &a,const ServerType &b){  //比例从小到大
+        return a.percent < b.percent;
+    }
 
 public:
 
@@ -56,6 +60,7 @@ public:
     Helper mHelper;
     ServerType mServerTypeByCpu[SERVER_TYPE_NUM];
     ServerType mServerTypeByMemory[SERVER_TYPE_NUM];
+    ServerType mServerTypeByPercent[SERVER_TYPE_NUM];
     Server mServer[100000];         //服务器 最多
     std::unordered_map<std::string, ServerType> mServerTypeMap;  //服务器类型(类型名，类型结构体) 按 价格 > cpu>内存>能耗
     int mServerId = 0;              //服务器 全局id
@@ -76,6 +81,10 @@ public:
     int mServerTypeNum;
     int mVMTypeNum;
     int sizeFlag;   //遍历过的服务器个数
+
+    std::set<int> mPercentTypeSet;      //自动排序，从小到大
+    std::vector<std::pair<std::string,int>> serverSelected;    //选取的 <服务器类型，CPU/内存比例>
+    std::unordered_map<std::string,std::string> vmTypeToServerType;       //虚拟机类型映射到服务器类型
 };
 
 

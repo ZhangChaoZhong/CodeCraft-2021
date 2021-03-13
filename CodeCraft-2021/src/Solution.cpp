@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <string>
 #include <iostream>
+#include <math.h>
 //#include <sys/mman.h>
 //#include <unistd.h>
 //#include <fcntl.h>
@@ -51,38 +52,109 @@ void Solution::input() {
     sort(this->mServerTypeByCpu,this->mServerTypeByCpu+this->mServerTypeNum,serverTypeCmpCpu);           //按cpu排序
     sort(this->mServerTypeByMemory,this->mServerTypeByMemory+this->mServerTypeNum,serverTypeCmpMemory);  //按内存排序
 
-//    cout<<"服务器\n";
-//    for(int i=0;i<this->mServerTypeNum;i++) {               //加入哈希表
-//         this->mHelper.printServerType(this->mServerTypeByMemory[i]);
-//    }
+    cout<<"服务器\n";
+    for(int i=0;i<this->mServerTypeNum;i++) {               //加入哈希表
+        //this->mHelper.printServerType(this->mServerTypeByMemory[i]);
+        this->mServerTypeByPercent[i].percent = int(this->mServerTypeByPercent[i].cpus*1.0/this->mServerTypeByPercent[i].memory);
+        this->mPercentTypeSet.insert(this->mServerTypeByPercent[i].percent);
+    }
+    sort(this->mServerTypeByPercent,this->mServerTypeByPercent+this->mServerTypeNum,serverTypeCmpPercent);
+    //for(auto it:this->mServerTypeByPercent) this->mHelper.printServerTypeBypercent(it);
+
+    /*划分，选取服务器类型*/
+    vector<ServerType> _serverType;
+    set<int>::iterator iter = this->mPercentTypeSet.begin();
+    for(int i=0;i<this->mServerTypeNum;i++){    //遍历服务器类型
+        ServerType tmp =this->mServerTypeByPercent[i];
+        if( *iter == tmp.percent){             //比例相同加入
+            _serverType.push_back(tmp);
+        }else{
+            int tMemory=0,tCpus=0,index=0,tPercent=0;
+            for(int j=0;j<_serverType.size();j++){
+                if(_serverType[j].memory > tMemory){    //保存内存大的
+                    index = j;
+                    tMemory = _serverType[j].memory;
+                    tPercent = _serverType[j].percent;
+                }else if(_serverType[j].memory == tMemory) { //内存相等，保存cpu大的
+                    if (_serverType[j].cpus > tCpus){
+                        index = j;
+                        tCpus = _serverType[j].cpus;
+                        tPercent = _serverType[j].percent;
+                    }
+                }
+            }
+            this->serverSelected.emplace_back(make_pair(_serverType[index].serverTypeName,tPercent));  //选取的服务器类型
+            _serverType.erase(_serverType.begin(),_serverType.end());   //删除之前的
+            _serverType.push_back(tmp);
+            iter++; //遍历下个比例
+        }
+        if(i == this->mServerTypeNum - 1){  //处理最后一种
+            int tMemory=0,tCpus=0,index=0,tPercent=0;
+            for(int j=0;j<_serverType.size();j++){
+                if(_serverType[j].memory > tMemory){    //保存内存大的
+                    index = j;
+                    tCpus = _serverType[j].cpus;
+                    tMemory = _serverType[j].memory;
+                    tPercent = _serverType[j].percent;
+                }else if(_serverType[j].memory == tMemory) { //内存相等，保存cpu大的
+                    if (_serverType[j].cpus > tCpus){
+                        index = j;
+                        tCpus = _serverType[j].cpus;
+                        tMemory = _serverType[j].memory;
+                        tPercent = _serverType[j].percent;
+                    }
+                }
+            }
+            this->serverSelected.emplace_back(make_pair(_serverType[index].serverTypeName,tPercent));  //选取的服务器类型
+        }
+    }
+    for(auto it:this->serverSelected) cout<<it.first << " " << it.second << endl;
 
     /**
-     * 售卖序列
+     * 虚拟机售卖序列
      *
      * */
+    //虚拟机类型按比值分类(CPU符不符合)+累加
+    int vmSelectTypeNum = this->serverSelected.size();  //服务器类型分类的数目
+
+
     cin >> this->mVMTypeNum;   //售卖数量
     for(int i=0;i<this->mVMTypeNum;i++){
         cin >> VMTypeName >> cpus >> memory >> isDouble;
         generateVm(i,VMTypeName,cpus,memory,isDouble);
-        //this->mVM.push_back({VMTypeName,this->mVMId++});
-        //cout << serverType<<" "<<cpus << " " << memory <<" " << isDouble <<endl;
+        vector<double> vec;     //虚拟机与所有服务器比值的距离保存下来
+        vec.erase(vec.begin(),vec.end());
+        for(int j=0;j<vmSelectTypeNum;j++){
+            vec.emplace_back(fabs(this->mVMTypeByCpu[i].cpus*1.0/this->mVMTypeByCpu[i].memory -  this->serverSelected[j].second*1.0));
+        }
+        int minDistanceIndex = min_element(vec.begin(),vec.end()) - vec.begin();
+        //cout << minDistanceIndex << endl;
+        ServerType tmp = this->mServerTypeMap[this->serverSelected[minDistanceIndex].first];
+        if(tmp.memory >= this->mVMTypeByCpu[i].memory && tmp.cpus >= this->mVMTypeByCpu[i].cpus){
+            this->vmTypeToServerType[this->mVMTypeByCpu[i].vmTypeName] = this->serverSelected[minDistanceIndex].first;    //虚拟机类型映射到服务器类型
+        }else{
+            cout <<"最大的不能分配" <<endl;
+        }
     }
-
-
     sort(this->mVMTypeByCpu,this->mVMTypeByCpu+this->mVMTypeNum,vmTypeCmpCpu);           //按cpu排序
     sort(this->mVMTypeByMemory,this->mVMTypeByMemory+this->mVMTypeNum,vmTypeCmpMemory);  //按内存排序
 
-//    cout<<"虚拟机\n";
-//    cout<< this->mVMTypeNum << endl;
-//    for(int i=0;i<this->mVMTypeNum;i++)
-//        this->mHelper.printVMType(this->mVMTypeByCpu[i]);
+    //for(auto it:this->vmTyepToServerType) cout << it.first <<" " << it.second <<endl;
+
+    cout<<"虚拟机\n";
+    cout<< this->mVMTypeNum << endl;
+    for(int i=0;i<this->mVMTypeNum;i++)
+        this->mHelper.printVMType(this->mVMTypeByCpu[i]);
 
     /**
      * 请求序列
      *
-     * */
+     */
+    vector<vector<long long>> memoryPerDay;        //每天的对应的服务器类型的内存实际的需求量
+
     cin >> this->mDays;  //请求天数
     //cout << this->mDays << endl;
+
     for (int i = 0; i < this->mDays; ++i) {
         int requestNum=0;  //当天请求数
         cin >> requestNum;
@@ -95,6 +167,11 @@ void Solution::input() {
             if(requestType[1] == 'a'){
                 cin >> VMTypeName >> vmId;
                 generateRequest(vec,requestType,VMTypeName,vmId);
+                if(i == 0){ //第一天
+                    totalMemory[minDistanceIndex] += this->mVMTypeByCpu[i].memory;  //将内存加入对应的服务器类型中，内存
+                }else{  //第二天 = 第二天+ 第一天 - 第一天删除的
+
+                }
             }else{
                 cin >> vmId;
                 generateRequest(vec,requestType,vmId);
@@ -210,6 +287,7 @@ void Solution::generateServer(int index,string &serverType,string &cpuCores,stri
     ServerType t = {_serverType,_cpuCores,_memorySize,_serverCost,_powerCost};
     this->mServerTypeByCpu[index]=t;
     this->mServerTypeByMemory[index]=t;
+    this->mServerTypeByPercent[index]=t;
     this->mServerTypeMap[_serverType] = t;
 }
 

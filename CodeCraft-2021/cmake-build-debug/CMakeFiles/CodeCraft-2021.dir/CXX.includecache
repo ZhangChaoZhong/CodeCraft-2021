@@ -17,6 +17,8 @@ vector
 -
 list
 -
+set
+-
 unordered_map
 -
 common.h
@@ -28,6 +30,12 @@ Helper.h
 iostream
 -
 
+/Users/zcz/CLionProjects/zczPro/CodeCraft-2021/CodeCraft-2021/CodeCraft-2021.cpp
+iostream
+-
+Solution.h
+/Users/zcz/CLionProjects/zczPro/CodeCraft-2021/CodeCraft-2021/Solution.h
+
 /Users/zcz/CLionProjects/zczPro/CodeCraft-2021/CodeCraft-2021/src/Solution.cpp
 Solution.h
 /Users/zcz/CLionProjects/zczPro/CodeCraft-2021/CodeCraft-2021/src/Solution.h
@@ -36,5 +44,7 @@ algorithm
 string
 -
 iostream
+-
+math.h
 -
 

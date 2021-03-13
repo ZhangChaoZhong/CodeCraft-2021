@@ -16,6 +16,7 @@ public:
     void printMigration(Migration &obj);
     void printDeployment(Deployment &obj);
     void generateServer(std::string &serverType,std::string &cpuCores,std::string &memorySize,std::string &serverCost,std::string &powerCost);
+    void printServerTypeBypercent(ServerType &obj);
 };
 
 

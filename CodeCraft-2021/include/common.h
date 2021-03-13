@@ -19,6 +19,7 @@ struct ServerType{
     int memory;           //内存大小  [1,1024]
     int hardCost;         //硬件成本  [1,5x10^5]
     int energyCost;       //能耗成本  [,5000]
+    int percent;       //CPU与内存比例
 };
 
 struct Server{

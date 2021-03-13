@@ -11,6 +11,11 @@ void Helper::printServerType(ServerType &obj) {
          << endl;
 }
 
+void Helper::printServerTypeBypercent(ServerType &obj) {
+    cout << obj.serverTypeName << "," << obj.cpus << "," << obj.memory << "," << obj.hardCost << "," << obj.energyCost
+            << "," << int(obj.percent)<< endl;
+}
+
 void Helper::printVMType(VMType &obj) {
     cout << obj.vmTypeName << "," << obj.cpus << "," << obj.memory << "," << obj.isDouble << endl;
 }
