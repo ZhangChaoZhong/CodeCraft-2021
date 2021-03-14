@@ -77,7 +77,6 @@ public:
     std::unordered_map<int,std::string> vmToVMType; //<虚拟机id映射到虚拟机类型>
     int mServerTypeNum;
     int mVMTypeNum;
-    int sizeFlag;   //遍历过的服务器个数
 
     std::set<int> mPercentTypeSet;      //自动排序，从小到大
     std::vector<std::pair<std::string,int>> serverSelected;    //选取的 <服务器类型，CPU/内存比例>
@@ -91,6 +90,7 @@ public:
     std::vector<int> mMaxIndex;//每种服务器类型的最大下标  <这个最大下标
     std::vector<int> mMinIndex;//每种服务器类型的最小下标 >=这个最小下标
     std::vector<int> mCurIndex; //每种服务器类型的当前的下标
+    std::vector<int> mReIndex;  //请求下个服务器的下标
 };
 
 
