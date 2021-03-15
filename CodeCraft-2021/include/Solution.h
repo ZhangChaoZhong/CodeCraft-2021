@@ -25,7 +25,7 @@ public:
     /** 决策（购买，迁移，部署） */
     void judge();
     /** 部署 */
-    void deploy(int i,int k);
+    void deploy(int i,int k,int &curId);
 
     /** 解析服务器类型 */
     void inputServer(int index,std::string &serverTypeName,std::string &cpus,std::string &memory,std::string &hardCost,std::string &energyCost);
@@ -86,10 +86,8 @@ public:
     std::vector<int> mNumPerServerType;                                  //每种类型的服务器的需求数量(多买10%)
 
     /// 按服务器类型遍历服务器；放不下，才放下一个；每次都从第一个开始放
-    std::vector<int> mMaxIndex;                                          //每种服务器类型的最大下标  <这个最大下标
-    std::vector<int> mMinIndex;                                          //每种服务器类型的最小下标 >=这个最小下标
-    std::vector<int> mCurIndex;                                          //每种服务器类型的当前的下标
-    std::vector<int> mReIndex;                                           //不符合再请求下个服务器的下标
+    int mMax;   //最大数量
+    int mSizeFlag;
 };
 
 

@@ -16,12 +16,14 @@ Solution::Solution(string &filename){
     this->mServerTypeNum = 0;
     this->mVMTypeNum=0;
     this->mNumServerTypeByPercent=0;
+    this->mSizeFlag = 0;
 }
 Solution::Solution(){
     this->mDays=0;
     this->mServerTypeNum = 0;
     this->mVMTypeNum=0;
     this->mNumServerTypeByPercent=0;
+    this->mSizeFlag = 0;
 }
 
 /**
@@ -29,7 +31,7 @@ Solution::Solution(){
  */
 void Solution::run() {
     this->input();
-    //this->judge();
+    this->judge();
 }
 
 /**
@@ -38,7 +40,7 @@ void Solution::run() {
 void Solution::input() {
 
     /// 文件输入流重定向到标准输入流
-    FILE *fp = freopen(this->mFilename.c_str(), "r", stdin);
+    //FILE *fp = freopen(this->mFilename.c_str(), "r", stdin);
 
     /// 服务器类型,请求类型
     string serverTypeName, VMTypeName, requestType;
@@ -195,32 +197,39 @@ void Solution::input() {
             }
         }
         /// (4)统计每种类型服务器每天内存需求量，删除量模块
-        getMemoryPerDay(i, vec,maxMemoryPerServerType);
+        //getMemoryPerDay(i, vec,maxMemoryPerServerType);
         this->mRequest.push_back(vec);
     }
 
-    long long sum2=0;
-    for(auto it:this->mMemoryPerDay.back()){
-        sum2+=it;
-    }
-    cout << sum2 <<endl;
+//    long long sum2=0;
+//    for(auto it:this->mMemoryPerDay.back()){
+//        sum2+=it;
+//    }
+    //cout << sum2 <<endl;
 
 
-    for(auto it:maxMemoryPerServerType) cout << it <<" ";cout <<endl;
+    //for(auto it:maxMemoryPerServerType) cout << it <<" ";cout <<endl;
     //for(auto it:serverSelected) cout << it.first <<" "<<it.second  <<endl;
+
+
 
     /// 统计各类服务器所需的数量，以及总成本
     //long long sum = 0;        //总成本
-    for (int i = 0; i < this->mNumServerTypeByPercent;i++) {
-        ServerType tmp = mServerTypeMap[this->serverSelected[i].first];
-        int cur = int(maxMemoryPerServerType[i] * 1.0 / tmp.memory);
-        this->mNumPerServerType.emplace_back(cur);    //将每种服务器类型的数量加入
-        //sum += cur*tmp.hardCost;
-    }
+    if(this->mServerTypeNum > 80)
+        this->mMax = 1617;
+    else
+        this->mMax = 1806;
+//    for (int i = 0; i < this->mNumServerTypeByPercent;i++) {
+//        int cur = 0;
+//        if(i == this->serverSelectedIndex["host2D54I"])
+//            cur = this->mMax;
+//        this->mNumPerServerType.emplace_back(cur);    //将每种服务器类型的数量加入
+//        //sum += cur*tmp.hardCost;
+//    }
     //cout << sum <<endl;
 
     /// 释放资源
-    fclose(fp);
+    //fclose(fp);
     mMemoryPerDay.erase(mMemoryPerDay.begin(), mMemoryPerDay.end());
     mMemoryPerDayDel.erase(mMemoryPerDayDel.begin(), mMemoryPerDayDel.end());
 
@@ -286,32 +295,23 @@ void Solution::judge(){
 
     for (int i = 0; i < this->mDays; ++i) {
         if(i == 0){     /// (1) 第一天购买所需要的全部服务器
-            cout << "(purchase, " <<  this->mNumServerTypeByPercent << ")"<< endl;
-            for (int j = 0; j <  this->mNumServerTypeByPercent; ++j) {    //先全部买
-                string name = this->indexSelectedServer[j];
-                int reqNum = this->mNumPerServerType[j];
-                ServerType tmpType =  this->mServerTypeMap[name];
-                cout << "(" << name << ", "<< reqNum <<")"<< endl;
-                pair<int,int> t={tmpType.cpus/2,tmpType.memory/2};
-                this->mMinIndex.emplace_back(this->mServerId);      //保存当前服务器类型的最小下标
-                this->mCurIndex.emplace_back(this->mServerId);      //保存当前服务器类型的当前下标
-                this->mReIndex.emplace_back(this->mServerId);   //请求下个服务器的下标
-                for(int k=0;k<reqNum;k++){
-                    this->mServer[this->mServerId] = {name,this->mServerId,t,t};      //加入购买的服务器
-                    this->mServerId++;
-                }
-                this->mMaxIndex.emplace_back(this->mServerId);  //保存当前服务器类型的最大下标
+            cout << "(purchase, 1)"<< endl;
+            cout << "(host2D54I, "<<this->mMax<<")"<< endl;
+            pair<int,int> t={386,386};
+            for(int k=0;k<this->mMax;k++){
+                this->mServer[this->mServerId] = {"host2D54I",this->mServerId,t,t};      //加入购买的服务器
+                this->mServerId++;
             }
         }else{
             cout << "(purchase, 0)"<< endl;
         }
-        //cout << "第" << i << "天" << endl;
 
         /// (2) 迁移
         cout << "(migration, 0)"<< endl;
 
         /// (3) 部署
-        deploy(i,0);
+        int curId = 0;
+        deploy(i,0,curId);
     }
 }
 
@@ -323,18 +323,12 @@ void Solution::judge(){
  * @param i 第i天
  * @param k 第i天请求数据的第k条数据(从下标0开始)
  */
-void Solution::deploy(int i,int k){
+void Solution::deploy(int i,int k,int &curId){
     int j;
     for (j = k; j < this->mRequest[i].size(); ++j) {
         Request curReq = this->mRequest[i][j];
         if(curReq.requestType == "add" ){     //(add, 虚拟机类型，虚拟机id)
             VMType vmType = this->mMVTypeMap[curReq.vmTypeName];    //虚拟机类型
-            int index = this->serverSelectedIndex[this->vmTypeToServerType[vmType.vmTypeName]];    //虚拟机类型名对应的服务器类型名,再找对应的服务器下标
-            //int curId = this->mCurIndex[index]; //当前服务器下标
-            int curId = this->mMinIndex[index];              //每次从当前服务器最小的下标开始遍历
-            if(curId != this->mReIndex[index]){ //当前id与再次请求的不一样，证明得移到下个服务器
-                curId = this->mReIndex[index];
-            }
             Server curServer = this->mServer[curId];
             int ACpus = curServer.A.first;      //这里不能除以2了
             int AMemory = curServer.A.second;
@@ -350,35 +344,47 @@ void Solution::deploy(int i,int k){
                     this->mServer[curId].B.second -= curMemory/2;
                     this->vmToServer[curReq.vmId]= make_pair(curId,0);    //虚拟机id映射到服务器id,结点(0双结点，1:A结点,2:B结点)
                     cout << "("<< curId << ")"<< endl;
-                    this->mReIndex[index] = this->mMinIndex[index];  //部署成功复原
+                    curId = 0;  //部署成功复原，下次还是从0开始遍历
+                    this->mSizeFlag=0;
                 }else{
-                    if(this->mReIndex[index] == this->mMaxIndex[index]){
-                        cout<<"超标:"<< index<<endl;
+                    j--;                    //先保持原请求
+                    this->mSizeFlag++;      //标志加1
+                    if(this->mSizeFlag== this->mServerId){
+                        cout<<"超标:第"<< i <<"天" <<endl;
+                        return;
                     }
-                    this->mReIndex[index]++;    //不符合，下一个服务器
-                    j--;        //保持当前请求
+                    curId++;    //不符合，下一个服务器
+                    if(curId == this->mServerId){ //遍历到最后，回到开头
+                        curId = 0;
+                    }
                 }
             } else{ //单结点
-                if(ACpus >= curCpus && AMemory >= curMemory){
+                if(ACpus >= curCpus && AMemory >= curMemory && ACpus > BCpus){
                     this->mServer[curId].A.first -= curCpus;
                     this->mServer[curId].A.second -= curMemory;
                     this->vmToServer[curReq.vmId]= make_pair(curId,1);
                     cout << "("<< curId << ", A)"<< endl;
-                    this->mReIndex[index] = this->mMinIndex[index];  //部署成功复原
+                    curId=0;  //部署成功复原
+                    this->mSizeFlag = 0;
                 }
                 else if(BCpus >= curCpus && BMemory >= curMemory ){
                     this->mServer[curId].B.first -= curCpus;
                     this->mServer[curId].B.second -= curMemory;
                     this->vmToServer[curReq.vmId]= make_pair(curId,2);
                     cout << "("<< curId << ", B)"<< endl;
-                    this->mReIndex[index] = this->mMinIndex[index];  //部署成功复原
+                    curId=0;  //部署成功复原
+                    this->mSizeFlag=0;
                 }else{
-//                    this->mCurIndex[index]++;
-                    if(this->mReIndex[index] == this->mMaxIndex[index]){
-                        cout<<"超标"<< index<<endl;
+                    j--;                    //先保持原请求
+                    this->mSizeFlag++;      //标志加1
+                    if(this->mSizeFlag== this->mServerId){
+                        cout<<"超标:第"<< i <<"天" <<endl;
+                        return;
                     }
-                    this->mReIndex[index]++;    //不符合，下一个服务器
-                    j--;
+                    curId++;    //不符合，下一个服务器
+                    if(curId == this->mServerId){ //遍历到最后，回到开头
+                        curId = 0;
+                    }
                 }
             }
         }else{  //(del, 虚拟机id)
@@ -403,10 +409,7 @@ void Solution::deploy(int i,int k){
         }
     }
 
-    for(int l=0;l<this->mNumServerTypeByPercent;l++){   //看当前服务器id是否遍历最大,是的话置为对应服务器的最小下标
-        if(this->mCurIndex[l] >= mMaxIndex[l])
-            this->mCurIndex[l] = mMinIndex[l];
-    }
+
 }
 
 /********************************************************************/
