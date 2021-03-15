@@ -1,0 +1,44 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+../include/Helper.h
+common.h
+../include/common.h
+
+../include/Solution.h
+iostream
+-
+vector
+-
+list
+-
+set
+-
+unordered_map
+-
+common.h
+../include/common.h
+Helper.h
+../include/Helper.h
+
+../include/common.h
+iostream
+-
+
+/Users/zcz/CLionProjects/zczPro/CodeCraft-2021/CodeCraft-2021/src/Solution.cpp
+Solution.h
+/Users/zcz/CLionProjects/zczPro/CodeCraft-2021/CodeCraft-2021/src/Solution.h
+algorithm
+-
+string
+-
+iostream
+-
+cmath
+-
+
