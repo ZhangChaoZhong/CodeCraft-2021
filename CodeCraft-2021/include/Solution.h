@@ -37,7 +37,7 @@ public:
     void inputRequest(std::vector<Request> &vec,std::string &requestType,std::string &reqId);
 
     /** 统计每一天请求的虚拟机的内存需求量，删除量 */
-    void getMemoryPerDay(int i,std::vector<Request> &vec,std::vector<long long> &maxMemoryPerServerType);
+    void getMemoryPerDay(int i,std::vector<Request> &vec);
 
     /** 按(CPU/内存)比例从小到大排序 */
     static bool serverTypeCmpPercent(const ServerType &a,const ServerType &b){
@@ -81,13 +81,16 @@ public:
     std::unordered_map<int,std::string> indexSelectedServer;             //<serverSelected下标,服务器类型>
 
     /// 计算最大内存，以及相应的服务器需求量
-    std::vector<std::vector<long long>> mMemoryPerDay;                   //存储每天的对应的服务器类型的内存实际的需求量
-    std::vector<std::vector<long long>> mMemoryPerDayDel;                //存储每天的对应的服务器类型的删除内存量
+    std::vector<long long> mMemoryPerDay;                   //存储每天的对应的服务器类型的内存实际的需求量
+    std::vector<long long> mMemoryPerDayDel;                //存储每天的对应的服务器类型的删除内存量
+    std::vector<long long> mCpuPerDay;                //存储每天的对应的服务器类型的删除内存量
+    std::vector<long long> mCpuPerDayDel;                //存储每天的对应的服务器类型的删除内存量
     std::vector<int> mNumPerServerType;                                  //每种类型的服务器的需求数量(多买10%)
 
     /// 按服务器类型遍历服务器；放不下，才放下一个；每次都从第一个开始放
     int mMax;   //最大数量
     int mSizeFlag;
+    std::string mTestName;
 };
 
 

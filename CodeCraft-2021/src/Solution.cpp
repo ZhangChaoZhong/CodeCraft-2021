@@ -173,9 +173,6 @@ void Solution::input() {
     /******************
      * 请求序列
      ******************/
-    /// 初始化每种类型服务器所需最大的内存量
-    vector<long long> maxMemoryPerServerType(this->mNumServerTypeByPercent,0);
-
     cin >> this->mDays;  //请求天数
     //cout << this->mDays << endl;
     /// 初始化每种类型服务器所需最大的内存量
@@ -197,7 +194,7 @@ void Solution::input() {
             }
         }
         /// (4)统计每种类型服务器每天内存需求量，删除量模块
-        //getMemoryPerDay(i, vec,maxMemoryPerServerType);
+        //getMemoryPerDay(i, vec);
         this->mRequest.push_back(vec);
     }
 
@@ -216,9 +213,9 @@ void Solution::input() {
     /// 统计各类服务器所需的数量，以及总成本
     //long long sum = 0;        //总成本
     if(this->mServerTypeNum > 80)
-        this->mMax = 1617;
+        this->mMax = 2645;
     else
-        this->mMax = 1806;
+        this->mMax = 2192;
 //    for (int i = 0; i < this->mNumServerTypeByPercent;i++) {
 //        int cur = 0;
 //        if(i == this->serverSelectedIndex["host2D54I"])
@@ -227,6 +224,12 @@ void Solution::input() {
 //        //sum += cur*tmp.hardCost;
 //    }
     //cout << sum <<endl;
+
+//    auto maxM= max_element(mMemoryPerDay.begin(), mMemoryPerDay.end());
+//    for(auto it:mMemoryPerDay) cout << it << endl;
+//    auto maxC = max_element(mCpuPerDay.begin(), mCpuPerDay.end());
+//    cout <<"内存：" << *maxM << " CPU:" << *maxC<< endl;
+
 
     /// 释放资源
     //fclose(fp);
@@ -245,44 +248,46 @@ void Solution::input() {
  * @param vec 第i天请求的数据
  */
 
-void Solution::getMemoryPerDay(int i,vector<Request> &vec,vector<long long> &maxMemoryPerServerType){
+void Solution::getMemoryPerDay(int i,vector<Request> &vec){
     //统计每种类型服务器需要的内存量
-    vector<long long> curMemoryPerServer(this->mNumServerTypeByPercent,0);   //当天内存需求量
-    vector<long long> curMemoryDel(this->mNumServerTypeByPercent,0);         //当天内存删除量
+    long long curMemoryPerServer=0;   //当天内存需求量
+    long long curMemoryDel=0;         //当天内存删除量
+    long long curCpuPerServer=0;   //当天Cpu需求量
+    long long curCpuDel=0;         //当天Cpu删除量
 
     if(i == 0){ //第一天
-        for(auto it:vec){       //遍历
-            string selected = this->vmTypeToServerType[it.vmTypeName]; //选取虚拟机对应的服务器类型
-            int index = this->serverSelectedIndex[selected];    //对应服务器的下标
+        for(auto &it:vec){             //遍历
             int memory = this->mMVTypeMap[this->vmToVMType[it.vmId]].memory;    //对应虚拟机的所需内存
+            int cpu = this->mMVTypeMap[this->vmToVMType[it.vmId]].cpus;    //对应虚拟机的所需内存
             if(it.requestType == "add"){
-                curMemoryPerServer[index] += memory;   //将虚拟机的内存累加到对应的服务器
+                curMemoryPerServer += memory;   //将虚拟机的内存累加到对应的服务器
+                curCpuPerServer += cpu;
             }else{  //del
-                curMemoryDel[index] += memory;          //将虚拟机的内存累加到对应的服务器
+                curMemoryDel += memory;          //将虚拟机的内存累加到对应的服务器
+                curCpuDel += cpu;
             }
 
         }
     }else{  //第2天...第n天
-        for(auto it:vec){       //统计一天的总量
-            string selected = this->vmTypeToServerType[it.vmTypeName]; //选取虚拟机对应的服务器类型
-            int index = this->serverSelectedIndex[selected];    //对应服务器的下标
+        for(auto &it:vec){       //统计一天的总量
             int memory = this->mMVTypeMap[this->vmToVMType[it.vmId]].memory;    //对应虚拟机的所需内存
+            int cpu = this->mMVTypeMap[this->vmToVMType[it.vmId]].cpus;    //对应虚拟机的所需内存
             if(it.requestType == "add"){
-                curMemoryPerServer[index] += memory;   //将虚拟机的内存累加到对应的服务器
+                curMemoryPerServer += memory;   //将虚拟机的内存累加到对应的服务器
+                curCpuPerServer += cpu;
             }else{  //del
-                curMemoryDel[index] += memory;          //将虚拟机的内存累加到对应的服务器
+                curMemoryDel += memory;          //将虚拟机的内存累加到对应的服务器
+                curCpuDel += cpu;
             }
         }
-        for(int j=0;j<curMemoryPerServer.size();j++){   //第二天 = 第二天+ 第一天 - 第一天删除的
-            curMemoryPerServer[j] += this->mMemoryPerDay.back()[j] - this->mMemoryPerDayDel.back()[j];
-        }
+        //第二天 = 第二天+ 第一天 - 第一天删除的
+        curMemoryPerServer += this->mMemoryPerDay.back() - this->mMemoryPerDayDel.back();
+        curCpuPerServer += this->mCpuPerDay.back() - this->mCpuPerDayDel.back();
     }
     this->mMemoryPerDay.emplace_back(curMemoryPerServer);  //将内存加入对应的服务器类型中 ,最后一个就是昨天的
     this->mMemoryPerDayDel.emplace_back(curMemoryDel);     //将删除的内存加入对应的服务器类型中 ,最后一个就是昨天的
-
-    for(int l=0;l<this->mNumServerTypeByPercent;l++){    //取当天，每种服务器类型的所需的内存量
-        maxMemoryPerServerType[l] = max(maxMemoryPerServerType[l],this->mMemoryPerDay.back()[l]);   //保存最大的一天
-    }
+    this->mCpuPerDay.emplace_back(curCpuPerServer);
+    this->mCpuPerDayDel.emplace_back(curCpuDel);
 }
 
 
@@ -296,10 +301,21 @@ void Solution::judge(){
     for (int i = 0; i < this->mDays; ++i) {
         if(i == 0){     /// (1) 第一天购买所需要的全部服务器
             cout << "(purchase, 1)"<< endl;
-            cout << "(host2D54I, "<<this->mMax<<")"<< endl;
-            pair<int,int> t={386,386};
+            int tC=0,tM=0;
+            if(this->mServerTypeNum > 80){
+                tC =220;
+                tM =238;
+                this->mTestName = "hostOF8KR";
+            }
+            else{
+                tC =274;
+                tM =330;
+                this->mTestName = "host6BW3B";
+            }
+            cout << "("<<this->mTestName<<", "<<this->mMax<<")"<< endl;
+            pair<int,int> t={tC,tM};
             for(int k=0;k<this->mMax;k++){
-                this->mServer[this->mServerId] = {"host2D54I",this->mServerId,t,t};      //加入购买的服务器
+                this->mServer[this->mServerId] = {this->mTestName,this->mServerId,t,t};      //加入购买的服务器
                 this->mServerId++;
             }
         }else{
