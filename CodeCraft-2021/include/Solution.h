@@ -44,6 +44,12 @@ public:
         return a.percent < b.percent;
     }
 
+    static bool serverTypeCmpEnergyCost(const ServerType &a,const ServerType &b){           //按能耗从小到大排序
+        return a.energyCost < b.energyCost;
+    }
+    static bool serverTypeCmpPM(const ServerType &a,const ServerType &b){           //按价格/内存 从小到大排序
+        return a.pm < b.pm;
+    }
 //    static bool serverTypeCmpCpu(const ServerType &a,const ServerType &b){                    //cpu从大到小
 //        return a.cpus > b.cpus;     //不能写>=
 //    };
@@ -51,7 +57,7 @@ public:
 
 public:
     std::string mFilename;          //输入的训练文件名
-    enum { SERVER_TYPE_NUM = 100, VM_TYPE_NUM = 1000,SERVER_NUM=100000}; // 枚举常量
+    enum { SERVER_TYPE_NUM = 100, VM_TYPE_NUM = 1000,SERVER_NUM=100010}; // 枚举常量
     Helper mHelper;                                                      //打印帮助类
 
     /// 服务器
@@ -90,7 +96,9 @@ public:
     /// 按服务器类型遍历服务器；放不下，才放下一个；每次都从第一个开始放
     int mMax;   //最大数量
     int mSizeFlag;
-    std::string mTestName;
+    std::string mTestName;      //测试的服务器类型名
+
+    std::vector<ServerType> mSelectServerType;   //选取的服务器类型
 };
 
 

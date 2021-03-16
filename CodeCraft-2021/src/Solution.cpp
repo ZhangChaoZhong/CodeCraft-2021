@@ -194,7 +194,7 @@ void Solution::input() {
             }
         }
         /// (4)统计每种类型服务器每天内存需求量，删除量模块
-        //getMemoryPerDay(i, vec);
+        getMemoryPerDay(i, vec);
         this->mRequest.push_back(vec);
     }
 
@@ -213,9 +213,10 @@ void Solution::input() {
     /// 统计各类服务器所需的数量，以及总成本
     //long long sum = 0;        //总成本
     if(this->mServerTypeNum > 80)
-        this->mMax = 2645;
+        this->mMax = 3316;
     else
-        this->mMax = 2192;
+        this->mMax = 3766;      //第1个数据集
+
 //    for (int i = 0; i < this->mNumServerTypeByPercent;i++) {
 //        int cur = 0;
 //        if(i == this->serverSelectedIndex["host2D54I"])
@@ -225,11 +226,60 @@ void Solution::input() {
 //    }
     //cout << sum <<endl;
 
-//    auto maxM= max_element(mMemoryPerDay.begin(), mMemoryPerDay.end());
-//    for(auto it:mMemoryPerDay) cout << it << endl;
-//    auto maxC = max_element(mCpuPerDay.begin(), mCpuPerDay.end());
-//    cout <<"内存：" << *maxM << " CPU:" << *maxC<< endl;
+    /// 统计虚拟机 所有天数中哪一天的内存，cpu最大
+    int maxM= *max_element(mMemoryPerDay.begin(), mMemoryPerDay.end());
+    //for(auto it:mMemoryPerDay) cout << it << endl;
+    int maxC = *max_element(mCpuPerDay.begin(), mCpuPerDay.end());
+    //cout <<"所有天数中最大的内存：" << maxM << " CPU:" << maxC<< endl;
+    /// 最大CPU比内存
+    double macC_M = maxC * 1.0 / maxM;
 
+    /// 统计虚拟机类型中CPU，内存最大
+    int vmMaxM=0,vmMaxC =0;
+    for(int i=0;i<this->mVMTypeNum;i++){
+        VMType it = this->mVMType[i];
+        //cout << it.vmTypeName << " " <<it.cpus << " " <<it.memory << endl;
+        if(it.isDouble){
+            vmMaxM=max(vmMaxM,it.memory/2);
+            vmMaxC=max(vmMaxC,it.cpus/2);
+        }else{
+            vmMaxM=max(vmMaxM,it.memory);
+            vmMaxC=max(vmMaxC,it.cpus);
+        }
+    }
+    //cout << "虚拟机中最大的内存："<<vmMaxM <<"  最大的CPU：" << vmMaxC <<endl;
+
+    /// 统计CPU
+    for(int i=0;i<this->mServerTypeNum;i++){
+        ServerType it = this->mServerType[i];
+        if(it.memory/2 >= vmMaxM && it.cpus/2 >= vmMaxC){       //选取满足虚拟机中最大的CPU，内存的服务器类型
+            int m = it.memory;
+            int c = it.cpus;
+            int p = it.hardCost;
+            it.cm = c*1.0/m;
+            it.pm = p/m;
+            it.pc = p/c;
+            it.p_cm = p/(c+m);
+            if(it.cm - macC_M >= 0 && it.cm - macC_M <= 0.3) // 在 最大存量CPU/内存  范围[0,0.3]
+            {
+                this->mSelectServerType.emplace_back(it);
+            }
+        }
+    }
+
+    /// 删除服务器类型  取能耗最小的前2/3
+    sort(this->mSelectServerType.begin(),this->mSelectServerType.end(),serverTypeCmpEnergyCost);
+    //for(auto &it:this->mSelectServerType)   cout << it.serverTypeName << endl;
+    int delSize = this->mSelectServerType.size()*2/3;
+    this->mSelectServerType.resize(delSize);
+
+    /// 选取价格/内存 最小的服务器类型
+//    for(auto it:this->mSelectServerType) {
+//        cout << it.serverTypeName <<" "<< it.pm << endl;
+//    }
+    sort(this->mSelectServerType.begin(),this->mSelectServerType.end(),serverTypeCmpPM);
+    this->mTestName = this->mSelectServerType[0].serverTypeName;
+    //cout << this->mTestName << endl;
 
     /// 释放资源
     //fclose(fp);
@@ -301,17 +351,7 @@ void Solution::judge(){
     for (int i = 0; i < this->mDays; ++i) {
         if(i == 0){     /// (1) 第一天购买所需要的全部服务器
             cout << "(purchase, 1)"<< endl;
-            int tC=0,tM=0;
-            if(this->mServerTypeNum > 80){
-                tC =220;
-                tM =238;
-                this->mTestName = "hostOF8KR";
-            }
-            else{
-                tC =274;
-                tM =330;
-                this->mTestName = "host6BW3B";
-            }
+            int tC=170,tM=191;
             cout << "("<<this->mTestName<<", "<<this->mMax<<")"<< endl;
             pair<int,int> t={tC,tM};
             for(int k=0;k<this->mMax;k++){
@@ -497,6 +537,7 @@ void Solution::inputServer(int index,string &serverTypeName,string &cpus,string 
     for(int i=0;i<energyCost.size()-1;i++){
         _energyCost = 10*_energyCost + energyCost[i] - '0';
     }
+
     ServerType t = {_serverTypeName,_cpus,_memory,_hardCost,_energyCost};
     this->mServerType[index]=t;
     this->mServerTypeByPercent[index]=t;

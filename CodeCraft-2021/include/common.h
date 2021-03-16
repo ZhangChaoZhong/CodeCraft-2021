@@ -20,6 +20,10 @@ struct ServerType{
     int hardCost;         //硬件成本  [1,5x10^5]
     int energyCost;       //能耗成本  [,5000]
     int percent;       //CPU与内存比例
+    double cm;  // CPU/内存
+    int pm; // 价格/内存
+    int pc; // 价格/cpu
+    int p_cm;   //价格/(CPU+内存)
 };
 
 struct Server{
