@@ -24,6 +24,7 @@ Solution::Solution(){
     this->mVMTypeNum=0;
     this->mNumServerTypeByPercent=0;
     this->mMax=0;
+
 }
 
 /**
@@ -267,8 +268,8 @@ void Solution::input() {
 //        cout << it.serverTypeName <<" "<< it.pm << endl;
 //    }
     sort(this->mSelectServerType.begin(),this->mSelectServerType.end(),serverTypeCmpPM);
-    this->mTest = this->mSelectServerType[0];
-    //cout << this->mSelectServerType[0].serverTypeName << endl;
+    //this->mTestName = this->mSelectServerType[0].serverTypeName;
+    //cout << this->mTestName<< endl;
 
     /// 释放资源
     //fclose(fp);
@@ -344,7 +345,7 @@ void Solution::judge(){
             cout << "("<<this->mSelectServerType[0].serverTypeName<<", "<<this->mMax<<")"<< endl;
             pair<int,int> t={tC,tM};
             for(int k=0;k<this->mMax;k++){
-                Server s = {this->mTestName,this->mServerId,t,t};
+                Server s = {this->mSelectServerType[0].serverTypeName,this->mServerId,t,t};
                 this->mServer[this->mServerId] = s;      //加入购买的服务器
                 this->mNoHasVm.emplace_back(s);
                 this->mServerId++;
@@ -488,59 +489,6 @@ void Solution::deploy(int i,int k){
                 this->vmToServer[curReq.vmId]= make_pair(bestId,2);
                 cout << "(" << bestId << ", B)"<< endl;
             }
-
-
-//            if(vmType.isDouble){    //双结点
-//                if(ACpus >= curCpus/2 && AMemory >= curMemory/2 && BCpus >= curCpus/2 && BMemory >= curMemory/2 ){
-//                    this->mServer[curId].A.first -= curCpus/2;
-//                    this->mServer[curId].A.second -= curMemory/2;
-//                    this->mServer[curId].B.first -= curCpus/2;
-//                    this->mServer[curId].B.second -= curMemory/2;
-//                    this->vmToServer[curReq.vmId]= make_pair(curId,0);    //虚拟机id映射到服务器id,结点(0双结点，1:A结点,2:B结点)
-//                    cout << "("<< curId << ")"<< endl;
-//                    curId = 0;  //部署成功复原，下次还是从0开始遍历
-//                    this->mSizeFlag=0;
-//                }else{
-//                    j--;                    //先保持原请求
-//                    this->mSizeFlag++;      //标志加1
-//                    if(this->mSizeFlag== this->mServerId){
-//                        cout<<"超标:第"<< i <<"天" <<endl;
-//                        return;
-//                    }
-//                    curId++;    //不符合，下一个服务器
-//                    if(curId == this->mServerId){ //遍历到最后，回到开头
-//                        curId = 0;
-//                    }
-//                }
-//            } else{ //单结点
-//                if(ACpus >= curCpus && AMemory >= curMemory && ACpus > BCpus){
-//                    this->mServer[curId].A.first -= curCpus;
-//                    this->mServer[curId].A.second -= curMemory;
-//                    this->vmToServer[curReq.vmId]= make_pair(curId,1);
-//                    cout << "("<< curId << ", A)"<< endl;
-//                    curId=0;  //部署成功复原
-//                    this->mSizeFlag = 0;
-//                }
-//                else if(BCpus >= curCpus && BMemory >= curMemory ){
-//                    this->mServer[curId].B.first -= curCpus;
-//                    this->mServer[curId].B.second -= curMemory;
-//                    this->vmToServer[curReq.vmId]= make_pair(curId,2);
-//                    cout << "("<< curId << ", B)"<< endl;
-//                    curId=0;  //部署成功复原
-//                    this->mSizeFlag=0;
-//                }else{
-//                    j--;                    //先保持原请求
-//                    this->mSizeFlag++;      //标志加1
-//                    if(this->mSizeFlag== this->mServerId){
-//                        cout<<"超标:第"<< i <<"天" <<endl;
-//                        return;
-//                    }
-//                    curId++;    //不符合，下一个服务器
-//                    if(curId == this->mServerId){ //遍历到最后，回到开头
-//                        curId = 0;
-//                    }
-//                }
-//            }
         }else{  //(del, 虚拟机id)
             VMType vmTypeTmp = this->mMVTypeMap[this->vmToVMType[curReq.vmId]];
             int curCpus = vmTypeTmp.cpus;
