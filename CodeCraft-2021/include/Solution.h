@@ -96,11 +96,8 @@ public:
 
     /// 按服务器类型遍历服务器；放不下，才放下一个；每次都从第一个开始放
     int mMax;   //最大数量
-    int mSizeFlag;
     std::string mTestName;      //测试的服务器类型名
     ServerType mTest;   //选取的服务器类型
-
-
     std::vector<ServerType> mSelectServerType;   //选取的服务器类型
 
     std::vector<Server> mHasVm; //已经有部署虚拟机的服务器

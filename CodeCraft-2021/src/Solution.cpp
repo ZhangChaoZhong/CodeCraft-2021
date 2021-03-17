@@ -16,14 +16,14 @@ Solution::Solution(string &filename){
     this->mServerTypeNum = 0;
     this->mVMTypeNum=0;
     this->mNumServerTypeByPercent=0;
-    this->mSizeFlag = 0;
+    this->mMax=0;
 }
 Solution::Solution(){
     this->mDays=0;
     this->mServerTypeNum = 0;
     this->mVMTypeNum=0;
     this->mNumServerTypeByPercent=0;
-    this->mSizeFlag = 0;
+    this->mMax=0;
 }
 
 /**
@@ -206,9 +206,9 @@ void Solution::input() {
     /// 统计各类服务器所需的数量，以及总成本
     //long long sum = 0;        //总成本
     if(this->mServerTypeNum > 80)
-        this->mMax = 3316;
+        this->mMax = 2210;
     else
-        this->mMax = 3766;      //第1个数据集
+        this->mMax = 2685;      //第1个数据集 3766
 
 //    for (int i = 0; i < this->mNumServerTypeByPercent;i++) {
 //        int cur = 0;
@@ -235,7 +235,7 @@ void Solution::input() {
         vmMaxC=max(vmMaxC,it.cpus);
 
     }
-    cout << "虚拟机中最大的内存："<<vmMaxM <<"  最大的CPU：" << vmMaxC <<endl;
+    //cout << "虚拟机中最大的内存："<<vmMaxM <<"  最大的CPU：" << vmMaxC <<endl;
 
     /// 统计CPU
     for(int i=0;i<this->mServerTypeNum;i++){
@@ -375,8 +375,13 @@ pair<int,int> Solution::getBestId(VMType &vmType){    //请求的虚拟机
         }
         double minCM=INT_MAX;
         for(auto &it:can){          //选取 min{ A|剩cpu/剩内存 - 原cpu/原内存| + B|剩cpu/剩内存 - 原cpu/原内存| }
-            double tmpA = fabs((it.first.A.first - vmType.cpus)*1.0/(it.first.A.second - vmType.cpus) - mServerTypeMap[it.first.serverTypeName].cm);
-            double tmpB = fabs((it.first.B.first - vmType.cpus)*1.0/(it.first.B.second - vmType.cpus) - mServerTypeMap[it.first.serverTypeName].cm);
+            if(it.first.A.second - vmType.memory == 0 || it.first.B.second - vmType.memory == 0)    //部署后内存为0，则为最优
+            {
+                return {it.first.id,0};
+            }
+            double tmpA = fabs((it.first.A.first - vmType.cpus)*1.0/(it.first.A.second - vmType.memory) - mServerTypeMap[it.first.serverTypeName].cm);
+            double tmpB = fabs((it.first.B.first - vmType.cpus)*1.0/(it.first.B.second - vmType.memory) - mServerTypeMap[it.first.serverTypeName].cm);
+            //cout << it.first.id <<" "<<tmpA+tmpB <<" " << minCM <<  endl;
             if((tmpA+tmpB) < minCM){
                 minCM = tmpA+tmpB;
                 bestId = it.first.id;
@@ -395,7 +400,12 @@ pair<int,int> Solution::getBestId(VMType &vmType){    //请求的虚拟机
         double minCM=INT_MAX;
         for(auto &it:can){               //min| 剩cpu/剩内存 - 原cpu/原内存|
             if(it.second == 1){         //A结点                       选取 min| 剩cpu/剩内存 - 原cpu/原内存|
-                double tmp = fabs((it.first.A.first - vmType.cpus)*1.0/(it.first.A.second - vmType.cpus) - mServerTypeMap[it.first.serverTypeName].cm);
+                if(it.first.A.second - vmType.memory == 0)       //部署后内存为0，则为最优
+                {
+                    return {it.first.id,1};
+                }
+                double tmp = fabs((it.first.A.first - vmType.cpus)*1.0/(it.first.A.second - vmType.memory) - mServerTypeMap[it.first.serverTypeName].cm);
+                //cout << it.first.id <<" A: "<< tmp<<" " << minCM <<  endl;
                 if(tmp < minCM){        //并且最小
                     bestId = it.first.id;
                     node = 1;
@@ -403,7 +413,12 @@ pair<int,int> Solution::getBestId(VMType &vmType){    //请求的虚拟机
                 }
             }
             if(it.second == 2){         //B结点
-                double tmp = fabs((it.first.B.first - vmType.cpus)*1.0/(it.first.B.second - vmType.cpus) - mServerTypeMap[it.first.serverTypeName].cm);
+                if(it.first.B.second - vmType.memory == 0)       //部署后内存为0，则为最优
+                {
+                    return {it.first.id,1};
+                }
+                double tmp = fabs((it.first.B.first - vmType.cpus)*1.0/(it.first.B.second - vmType.memory) - mServerTypeMap[it.first.serverTypeName].cm);
+                //cout << it.first.id <<" B: "<< tmp<<" " << minCM <<  endl;
                 if(tmp < minCM){        //并且最小
                     bestId = it.first.id;
                     node = 2;
@@ -428,6 +443,7 @@ void Solution::deploy(int i,int k){
     for (j = k; j < this->mRequest[i].size(); ++j) {
         Request curReq = this->mRequest[i][j];
         if(curReq.requestType == "add" ){     //(add, 虚拟机类型，虚拟机id)
+            int index = 0;
             VMType vmType = this->mMVTypeMap[curReq.vmTypeName];    //虚拟机类型
             pair<int,int> bestObj = getBestId(vmType);
             int bestId = bestObj.first,node = bestObj.second;
@@ -437,18 +453,17 @@ void Solution::deploy(int i,int k){
                     return;
                 }
                 Server t = this->mNoHasVm.front();
-                t.index = this->mHasVm.size();        //分配下标
                 this->mHasVm.emplace_back(t);           // 将没有部署虚拟机的第一个服务器，添加到队列中
                 this->mNoHasVm.erase(this->mNoHasVm.begin());   // 删除第一个
-                bestObj = getBestId(vmType);
-                bestId = bestObj.first,node = bestObj.second;
-            }
-
-            int index = 0;
-            for(int l=0;l<this->mHasVm.size();l++){ //找出下标
-                if(this->mHasVm[l].id == bestId){
-                    index = l;
-                    break;
+                bestId = t.id;
+                index = this->mHasVm.size()-1;
+                node = vmType.isDouble ? 0:1;   //是双结点直接部署：0，单结点直接部署到A结点上
+            }else{
+                for(int l=0;l<this->mHasVm.size();l++){ //找出下标
+                    if(this->mHasVm[l].id == bestId){
+                        index = l;
+                        break;
+                    }
                 }
             }
 
