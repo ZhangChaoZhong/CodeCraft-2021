@@ -25,7 +25,7 @@ public:
     /** 决策（购买，迁移，部署） */
     void judge();
     /** 部署 */
-    void deploy(int i,int k,int &curId);
+    void deploy(int i,int k);
 
     /** 解析服务器类型 */
     void inputServer(int index,std::string &serverTypeName,std::string &cpus,std::string &memory,std::string &hardCost,std::string &energyCost);
@@ -50,10 +50,10 @@ public:
     static bool serverTypeCmpPM(const ServerType &a,const ServerType &b){           //按价格/内存 从小到大排序
         return a.pm < b.pm;
     }
-//    static bool serverTypeCmpCpu(const ServerType &a,const ServerType &b){                    //cpu从大到小
-//        return a.cpus > b.cpus;     //不能写>=
-//    };
-
+    static bool serverCmpId(const Server &a,const Server &b){                    //id从大到小
+        return a.id < b.id;     //不能写>=
+    };
+    std::pair<int,int>  getBestId(VMType &vmType);
 
 public:
     std::string mFilename;          //输入的训练文件名
@@ -76,6 +76,7 @@ public:
     std::unordered_map<int,std::string> vmToVMType;                      //<虚拟机id映射到虚拟机类型名>
     std::unordered_map<std::string,std::string> vmTypeToServerType;      //<虚拟机类型名映射到服务器类型名>
 
+
     /// 请求
     int mDays;                                                           //请求天数
     std::vector<std::vector<Request>> mRequest;                          //请求序列
@@ -97,8 +98,13 @@ public:
     int mMax;   //最大数量
     int mSizeFlag;
     std::string mTestName;      //测试的服务器类型名
+    ServerType mTest;   //选取的服务器类型
+
 
     std::vector<ServerType> mSelectServerType;   //选取的服务器类型
+
+    std::vector<Server> mHasVm; //已经有部署虚拟机的服务器
+    std::vector<Server> mNoHasVm; //没有部署虚拟机的服务器
 };
 
 

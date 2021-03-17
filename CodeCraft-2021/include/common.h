@@ -24,6 +24,7 @@ struct ServerType{
     int pm; // 价格/内存
     int pc; // 价格/cpu
     int p_cm;   //价格/(CPU+内存)
+    int totalCost;  //生命周期总能耗量
 };
 
 struct Server{
@@ -31,6 +32,7 @@ struct Server{
     int id;               //服务器id  int范围 [0,2^32]
     std::pair<int,int> A;
     std::pair<int,int> B;
+    int index;  //部署服务器数组中的下标
 };
 
 /*
@@ -87,5 +89,6 @@ struct Deployment{
     int id;                //服务器id  int范围 [0,2^32]
     char node;             //部署的结点 A或者B
 };
+
 
 #endif //CODECRAFT_2021_COMMON_H
