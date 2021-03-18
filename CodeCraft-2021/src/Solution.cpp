@@ -8,6 +8,8 @@
 #include <string>
 #include <iostream>
 #include <cmath>
+//#include <cstdio>
+//#include <ctime>
 using namespace std;
 
 Solution::Solution(string &filename){
@@ -258,16 +260,19 @@ void Solution::input() {
     }
 
     /// 删除服务器类型  取能耗最小的前2/3
-    sort(this->mSelectServerType.begin(),this->mSelectServerType.end(),serverTypeCmpEnergyCost);
+    sort(this->mSelectServerType.begin(),this->mSelectServerType.end(),serverTypeCmpEnergyCost);     //按能耗从小到大排序
     //for(auto &it:this->mSelectServerType)   cout << it.serverTypeName << endl;
     int delSize = this->mSelectServerType.size()*2/3;
     this->mSelectServerType.resize(delSize);
 
     /// 选取价格/内存 最小的服务器类型
+
+    sort(this->mSelectServerType.begin(),this->mSelectServerType.end(),serverTypeCmpPM);    //按价格/内存 从小到大排序
 //    for(auto it:this->mSelectServerType) {
 //        cout << it.serverTypeName <<" "<< it.pm << endl;
 //    }
-    sort(this->mSelectServerType.begin(),this->mSelectServerType.end(),serverTypeCmpPM);
+
+    this->mSelectedServerType = this->mSelectServerType[0];
     //this->mTestName = this->mSelectServerType[0].serverTypeName;
     //cout << this->mTestName<< endl;
 
@@ -298,7 +303,7 @@ void Solution::getMemoryPerDay(int i,vector<Request> &vec){
     if(i == 0){ //第一天
         for(auto &it:vec){             //遍历
             int memory = this->mMVTypeMap[this->vmToVMType[it.vmId]].memory;    //对应虚拟机的所需内存
-            int cpu = this->mMVTypeMap[this->vmToVMType[it.vmId]].cpus;    //对应虚拟机的所需内存
+            int cpu = this->mMVTypeMap[this->vmToVMType[it.vmId]].cpus;         //对应虚拟机的所需内存
             if(it.requestType == "add"){
                 curMemoryPerServer += memory;   //将虚拟机的内存累加到对应的服务器
                 curCpuPerServer += cpu;
@@ -306,7 +311,6 @@ void Solution::getMemoryPerDay(int i,vector<Request> &vec){
                 curMemoryDel += memory;          //将虚拟机的内存累加到对应的服务器
                 curCpuDel += cpu;
             }
-
         }
     }else{  //第2天...第n天
         for(auto &it:vec){       //统计一天的总量
@@ -340,11 +344,11 @@ void Solution::judge(){
     for (int i = 0; i < this->mDays; ++i) {
         if(i == 0){     /// (1) 第一天购买所需要的全部服务器
             cout << "(purchase, 1)"<< endl;
-            int tC=this->mSelectServerType[0].cpus/2,tM=this->mSelectServerType[0].memory/2;
-            cout << "("<<this->mSelectServerType[0].serverTypeName<<", "<<this->mMax<<")"<< endl;
+            int tC=this->mSelectedServerType.cpus/2,tM=this->mSelectedServerType.memory/2;
+            cout << "("<<this->mSelectedServerType.serverTypeName<<", "<<this->mMax<<")"<< endl;
             pair<int,int> t={tC,tM};
-            for(int k=0;k<this->mMax;k++){
-                Server s = {this->mSelectServerType[0].serverTypeName,this->mServerId,t,t};
+            for(int k=this->mMax-1;k>=0;k--){       //id 从大到小
+                Server s = {this->mSelectedServerType.serverTypeName,k,t,t};
                 //this->mServer[this->mServerId] = s;      //加入购买的服务器
                 this->mNoHasVm.emplace_back(s);
                 this->mServerId++;
@@ -357,7 +361,10 @@ void Solution::judge(){
         cout << "(migration, 0)"<< endl;
 
         /// (3) 部署
+//        clock_t start = clock();
         deploy(i,0);
+//        clock_t ends = clock();
+//        cout <<"Running Time "<<i<<" "<<(double)(ends - start)/ CLOCKS_PER_SEC << endl;
     }
 }
 
@@ -384,10 +391,10 @@ void Solution::deploy(int i,int k){
                     cout<<"超标:第"<< i <<"天" <<endl;
                     return;
                 }
-                Server t = this->mNoHasVm.front();
+                Server t = this->mNoHasVm.back();
                 this->mHasVm.emplace_back(t);           // 将没有部署虚拟机的第一个服务器，添加到队列中
-                this->mNoHasVm.erase(this->mNoHasVm.begin());   // 删除第一个
-                curIndex = 0;
+                this->mNoHasVm.pop_back();   // 删除第一个
+                curIndex = 0;           //取第一个
             }
 
             Server curServer = this->mHasVm[curIndex];
@@ -409,9 +416,9 @@ void Solution::deploy(int i,int k){
                             cout<<"超标:第"<< i <<"天" <<endl;
                             return;
                         }else{      //有存量
-                            Server t = this->mNoHasVm.front();
+                            Server t = this->mNoHasVm.back();
                             this->mHasVm.emplace_back(t);           // 将没有部署虚拟机的第一个服务器，添加到队列中
-                            this->mNoHasVm.erase(this->mNoHasVm.begin());   // 删除第一个
+                            this->mNoHasVm.pop_back();   // 删除第一个
                             curIndex = this->mHasVm.size()-1;
                         }
                     }
@@ -440,9 +447,9 @@ void Solution::deploy(int i,int k){
                             cout<<"超标:第"<< i <<"天" <<endl;
                             return;
                         }else{      // 有存量
-                            Server t = this->mNoHasVm.front();
+                            Server t = this->mNoHasVm.back();
                             this->mHasVm.emplace_back(t);           // 将没有部署虚拟机的第一个服务器，添加到队列中
-                            this->mNoHasVm.erase(this->mNoHasVm.begin());   // 删除第一个
+                            this->mNoHasVm.pop_back();   // 删除第一个
                             curIndex = this->mHasVm.size()-1;
                         }
                     }
@@ -478,10 +485,9 @@ void Solution::deploy(int i,int k){
             }
             //ServerType src = mServerTypeMap[this->mServer[targetServerId].serverTypeName];
             /// 删除虚拟机后，判断是否为服务器是否没有部署虚拟机了
-            if(this->mHasVm[index].A.first + this->mHasVm[index].B.first == 340 && this->mHasVm[index].A.second + this->mHasVm[index].B.second == 382){
+            if(this->mHasVm[index].A.first + this->mHasVm[index].B.first == mSelectedServerType.cpus && this->mHasVm[index].A.second + this->mHasVm[index].B.second == mSelectedServerType.memory){
                 this->mNoHasVm.emplace_back(this->mHasVm[index]);     //将服务器添加到空的队列中
-                sort(this->mNoHasVm.begin(),this->mNoHasVm.end(),serverCmpId);  //按id从小到大排序
-
+                sort(this->mNoHasVm.begin(),this->mNoHasVm.end(),serverCmpId);  //按id从大到小排序
                 auto iter = this->mHasVm.begin();
                 while(iter!=this->mHasVm.end()){      //删除对应的服务器
                     if((*iter).id == targetServerId){
