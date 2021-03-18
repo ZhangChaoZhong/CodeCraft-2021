@@ -53,7 +53,6 @@ public:
     static bool serverCmpId(const Server &a,const Server &b){                    //id从大到小
         return a.id < b.id;     //不能写>=
     };
-    std::pair<int,int>  getBestId(VMType &vmType);
 
 public:
     std::string mFilename;          //输入的训练文件名
@@ -65,7 +64,7 @@ public:
     int mServerTypeNum;                                                  // 实际的服务类型数量
     ServerType mServerType[SERVER_TYPE_NUM];                             //服务器类型 数组
     ServerType mServerTypeByPercent[SERVER_TYPE_NUM];                    //按比例从小到大排序的服务器类型 数组
-    Server mServer[SERVER_NUM];                                          //服务器 数组
+    //Server mServer[SERVER_NUM];                                          //服务器 数组
     std::unordered_map<std::string, ServerType> mServerTypeMap;          //<服务器类型名，服务器类型结构体>
 
     /// 虚拟机
