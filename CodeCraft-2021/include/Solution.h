@@ -7,11 +7,12 @@
 
 #include <iostream>
 #include <vector>
-#include <list>
 #include <set>
 #include <unordered_map>
+#include <thread>
 #include "common.h"
 #include "Helper.h"
+#define NUM_THREADS 4
 
 class Solution {
 public:
@@ -56,6 +57,10 @@ public:
     static bool serverCmpCM(const Server &a,const Server &b){                    //按CPU+内存的剩余总量 从小到大排序
         return (a.A.first+a.A.second+a.B.first+a.B.second) < (b.A.first+b.A.second+b.B.first+b.B.second);     //不能写>=
     };
+
+    static void getDoubleIndex(int tid,int numSize,int cpu,int memory,std::vector<int> &res,std::vector<Server> &s); //获取下一个服务器的下标
+    static void getSingleIndex(int tid,int numSize,int cpu,int memory,std::vector<int> &res,std::vector<Server> &s); //获取下一个服务器的下标
+
 
 public:
     std::string mFilename;          //输入的训练文件名
@@ -104,6 +109,8 @@ public:
 
     std::vector<Server> mHasVm; //已经有部署虚拟机的服务器
     std::vector<Server> mNoHasVm; //没有部署虚拟机的服务器
+
+    std::thread  mThread[NUM_THREADS];      //创建4个线程
 };
 
 
