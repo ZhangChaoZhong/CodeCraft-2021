@@ -59,7 +59,9 @@ public:
     };
 
     static void getDoubleIndex(int tid,int numSize,int cpu,int memory,std::vector<int> &res,std::vector<Server> &s); //获取下一个服务器的下标
-    static void getSingleIndex(int tid,int numSize,int cpu,int memory,std::vector<int> &res,std::vector<Server> &s); //获取下一个服务器的下标
+    static void getSingleIndex(int tid,int numSize,int cpu,int memory,std::vector<int> &res,std::vector<Server> &s,int &node); //获取下一个服务器的下标
+    static void getDoubleIndex2(int tid,int numSize,int cpu,int memory,std::vector<int> &res,std::vector<Server> &s);
+    static void getSingleIndex2(int tid,int numSize,int cpu,int memory,std::vector<int> &res,std::vector<Server> &s,int &node);
 
 
 public:

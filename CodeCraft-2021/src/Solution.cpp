@@ -209,9 +209,9 @@ void Solution::input() {
     /// 统计各类服务器所需的数量，以及总成本
     //long long sum = 0;        //总成本
     if(this->mServerTypeNum > 80)
-        this->mMax = 3264;
+        this->mMax = 2563;      // 3264
     else
-        this->mMax = 3737;      //第1个数据集 3766
+        this->mMax = 3169;      //第1个数据集 3737
 
 //    for (int i = 0; i < this->mNumServerTypeByPercent;i++) {
 //        int cur = 0;
@@ -368,6 +368,45 @@ void Solution::judge(){
     }
 }
 
+void Solution::getDoubleIndex2(int tid,int numSize,int cpu,int memory,vector<int> &res,vector<Server> &s) {
+    int end = numSize*(tid+1);      //线程对应的开始下标
+    if(tid == NUM_THREADS-1){       //最后一个线程，则遍历到最后
+        end = s.size();
+    }
+    for(int i=numSize*tid;i<end;i++){   //遍历对应的序列
+        if(s[i].A.first >= cpu && s[i].A.second >= memory && s[i].B.first >= cpu&& s[i].B.second >= memory){
+            if(!((s[i].A.first-cpu <= 2 && s[i].A.second-memory >= 10) || (s[i].A.second-memory <= 2 && s[i].A.first-cpu >= 10)
+                 || (s[i].B.first-cpu <= 2 && s[i].B.second-memory >= 10) || (s[i].B.second-memory <= 2 && s[i].B.first-cpu >= 10))){
+                res[tid] = i;
+                break;
+            }
+        }
+    }
+}
+void Solution::getSingleIndex2(int tid,int numSize,int cpu,int memory,vector<int> &res,vector<Server> &s,int &node) {
+    int end = numSize*(tid+1);      //线程对应的开始下标
+    if(tid == NUM_THREADS-1){       //最后一个线程，则遍历到最后
+        end = s.size();
+    }
+    for(int i=numSize*tid;i<end;i++){   //遍历对应的序列
+        if(s[i].A.first >= cpu && s[i].A.second >= memory){
+            if(!((s[i].A.first  -cpu <= 2 && s[i].A.second  -memory >= 10) || (s[i].A.second -memory <= 2 && s[i].A.first  -cpu >= 10))){
+                res[tid] = i;
+                node = 1;
+                break;
+            }
+        }
+        if(s[i].B.first >= cpu&& s[i].B.second >= memory){
+            if(!((s[i].B.first  -cpu <= 2 && s[i].B.second  -memory >= 10) || (s[i].B.second -memory <= 2 && s[i].B.first  -cpu >= 10))){
+                res[tid] = i;
+                node = 2;
+                break;
+            }
+        }
+    }
+}
+
+/// 第2个策略
 void Solution::getDoubleIndex(int tid,int numSize,int cpu,int memory,vector<int> &res,vector<Server> &s) {
     int end = numSize*(tid+1);      //线程对应的开始下标
     if(tid == NUM_THREADS-1){       //最后一个线程，则遍历到最后
@@ -381,7 +420,8 @@ void Solution::getDoubleIndex(int tid,int numSize,int cpu,int memory,vector<int>
     }
 }
 
-void Solution::getSingleIndex(int tid,int numSize,int cpu,int memory,vector<int> &res,vector<Server> &s) {
+/// 第2个策略
+void Solution::getSingleIndex(int tid,int numSize,int cpu,int memory,vector<int> &res,vector<Server> &s,int &node) {
     int end = numSize*(tid+1);      //线程对应的开始下标
     if(tid == NUM_THREADS-1){       //最后一个线程，则遍历到最后
         end = s.size();
@@ -389,10 +429,12 @@ void Solution::getSingleIndex(int tid,int numSize,int cpu,int memory,vector<int>
     for(int i=numSize*tid;i<end;i++){   //遍历对应的序列
         if(s[i].A.first >= cpu && s[i].A.second >= memory){
             res[tid] = i;
+            node = 1;       /// A结点
             break;
         }
         if(s[i].B.first >= cpu&& s[i].B.second >= memory){
             res[tid] = i;
+            node = 2;   /// B结点
             break;
         }
     }
@@ -410,6 +452,7 @@ void Solution::deploy(int i,int k){
     int j;
     int curIndex = 0;
     for (j = k; j < this->mRequest[i].size(); ++j) {
+        curIndex = 0;
         Request curReq = this->mRequest[i][j];
         if(curReq.requestType == "add" ){     //(add, 虚拟机类型，虚拟机id)
             VMType vmType = this->mMVTypeMap[curReq.vmTypeName];    //虚拟机类型
@@ -424,28 +467,101 @@ void Solution::deploy(int i,int k){
                 Server t = this->mNoHasVm.back();
                 this->mHasVm.emplace_back(t);           // 将没有部署虚拟机的第一个服务器，添加到队列中
                 this->mNoHasVm.pop_back();   // 删除第一个
-                curIndex = 0;           //取第一个
             }
 
             Server curServer = this->mHasVm[curIndex];
 
             if(vmType.isDouble){        /// 双结点  符合
                 if(curServer.A.first >= curCpus/2 && curServer.A.second >= curMemory/2  && curServer.B.first >= curCpus/2 && curServer.B.second >= curMemory/2){
-                    this->mHasVm[curIndex].A.first -= curCpus/2;
-                    this->mHasVm[curIndex].A.second -= curMemory/2;
-                    this->mHasVm[curIndex].B.first -= curCpus/2;
-                    this->mHasVm[curIndex].B.second -= curMemory/2;
-                    cout << "(" << this->mHasVm[curIndex].id << ")"<< endl;
-                    this->vmToServer[curReq.vmId]= make_pair(this->mHasVm[curIndex].id,0);    //虚拟机id映射到服务器id,结点(0双结点，1:A结点,2:B结点)
-                    curIndex = 0;           //符合恢复为0
-                }else{          /// 不符合
-                    //curIndex++; /// 下一个服务器
+                    if((curServer.A.first-curCpus/2 <= 2 && curServer.A.second-curMemory/2 >= 10) || (curServer.A.second-curMemory/2 <= 2 && curServer.A.first-curCpus/2 >= 10)
+                       || (curServer.B.first-curCpus/2 <= 2 && curServer.B.second-curMemory/2 >= 10) || (curServer.B.second-curMemory/2 <= 2 && curServer.B.first-curCpus/2 >= 10)) {   /// 浪费
 
+                        /// 第1个策略
+                        curIndex = -1;
+                        vector<int> res(NUM_THREADS,-1);//存放结果，服务器的下标
+                        int numSize =this->mHasVm.size()/NUM_THREADS; //划分每个线程处理的序列长度
+                        for (int l = 0; l < NUM_THREADS; ++l) {
+                            this->mThread[l] = std::thread(&Solution::getDoubleIndex2, l,numSize,curCpus/2,curMemory/2,ref(res),ref(this->mHasVm));//调用函数要加类名，并且传引用，要用ref()
+                        }
+                        /// 等待所有线程结束，再取
+                        for (auto & l : this->mThread) {
+                            l.join();
+                        }
+
+                        /// 取出找到的下标
+                        for(auto it:res){
+                            if(it != -1){
+                                curIndex = it;
+                                break;
+                            }
+                        }
+                        if(curIndex == -1){        /// 第1个策略没有找到了
+                            /// 第2策略   必须部署
+                            {      /// 上面成功，下面不运行
+                                curIndex = -1;
+                                vector<int> res(NUM_THREADS,-1);//存放结果，服务器的下标
+                                numSize =this->mHasVm.size()/NUM_THREADS; //划分每个线程处理的序列长度
+                                for (int l = 0; l < NUM_THREADS; ++l) {
+                                    this->mThread[l] = std::thread(&Solution::getDoubleIndex, l,numSize,curCpus/2,curMemory/2,ref(res),ref(this->mHasVm));//调用函数要加类名，并且传引用，要用ref()
+                                }
+                                /// 等待所有线程结束，再取
+                                for (auto & l : this->mThread) {
+                                    l.join();
+                                }
+
+                                /// 取出找到的下标
+                                for(auto it:res){
+                                    if(it != -1){
+                                        curIndex = it;
+                                        break;
+                                    }
+                                }
+
+                                if(curIndex == -1) {      /// 没有找到 取新的部署
+                                    if(this->mNoHasVm.empty()){           //服务器没有存量了
+                                        cout<<"超标:第"<< i <<"天" <<endl;
+                                        return;
+                                    }else{      /// 有存量
+                                        Server t = this->mNoHasVm.back();
+                                        this->mHasVm.emplace_back(t);           // 将没有部署虚拟机的第一个服务器，添加到队列中
+                                        this->mNoHasVm.pop_back();   // 删除第一个
+                                        curIndex = this->mHasVm.size()-1;
+                                    }
+                                }
+
+                                /// 部署
+                                this->mHasVm[curIndex].A.first -= curCpus/2;
+                                this->mHasVm[curIndex].A.second -= curMemory/2;
+                                this->mHasVm[curIndex].B.first -= curCpus/2;
+                                this->mHasVm[curIndex].B.second -= curMemory/2;
+                                cout << "(" << this->mHasVm[curIndex].id << ")"<< endl;
+                                this->vmToServer[curReq.vmId]= make_pair(this->mHasVm[curIndex].id,0);    //虚拟机id映射到服务器id,结点(0双结点，1:A结点,2:B结点)
+                            }
+                        }else{
+                            /// 部署
+                            this->mHasVm[curIndex].A.first -= curCpus/2;
+                            this->mHasVm[curIndex].A.second -= curMemory/2;
+                            this->mHasVm[curIndex].B.first -= curCpus/2;
+                            this->mHasVm[curIndex].B.second -= curMemory/2;
+                            cout << "(" << this->mHasVm[curIndex].id << ")"<< endl;
+                            this->vmToServer[curReq.vmId]= make_pair(this->mHasVm[curIndex].id,0);    //虚拟机id映射到服务器id,结点(0双结点，1:A结点,2:B结点)
+                        }
+                    }else{      /// 不浪费
+                        this->mHasVm[curIndex].A.first -= curCpus/2;
+                        this->mHasVm[curIndex].A.second -= curMemory/2;
+                        this->mHasVm[curIndex].B.first -= curCpus/2;
+                        this->mHasVm[curIndex].B.second -= curMemory/2;
+                        cout << "(" << this->mHasVm[curIndex].id << ")"<< endl;
+                        this->vmToServer[curReq.vmId]= make_pair(this->mHasVm[curIndex].id,0);    //虚拟机id映射到服务器id,结点(0双结点，1:A结点,2:B结点)
+                    }
+                }
+                else{           /// 双结点 不符合
+                    ///  第1个策略
                     curIndex = -1;
                     vector<int> res(NUM_THREADS,-1);//存放结果，服务器的下标
                     int numSize =this->mHasVm.size()/NUM_THREADS; //划分每个线程处理的序列长度
                     for (int l = 0; l < NUM_THREADS; ++l) {
-                        this->mThread[l] = std::thread(&Solution::getDoubleIndex, l,numSize,curCpus/2,curMemory/2,ref(res),ref(this->mHasVm));//调用函数要加类名，并且传引用，要用ref()
+                        this->mThread[l] = std::thread(&Solution::getDoubleIndex2, l,numSize,curCpus/2,curMemory/2,ref(res),ref(this->mHasVm));//调用函数要加类名，并且传引用，要用ref()
                     }
                     /// 等待所有线程结束，再取
                     for (auto & l : this->mThread) {
@@ -459,70 +575,339 @@ void Solution::deploy(int i,int k){
                             break;
                         }
                     }
+                    if(curIndex == -1){         /// 第1个策略没有找到了
+                        /// 第2个策略
+                        {      /// 上面成功，下面不运行
+                            curIndex = -1;
+                            vector<int> res(NUM_THREADS,-1);//存放结果，服务器的下标
+                            int numSize =this->mHasVm.size()/NUM_THREADS; //划分每个线程处理的序列长度
+                            for (int l = 0; l < NUM_THREADS; ++l) {
+                                this->mThread[l] = std::thread(&Solution::getDoubleIndex, l,numSize,curCpus/2,curMemory/2,ref(res),ref(this->mHasVm));//调用函数要加类名，并且传引用，要用ref()
+                            }
+                            /// 等待所有线程结束，再取
+                            for (auto & l : this->mThread) {
+                                l.join();
+                            }
 
-                    j --;       /// 保持当前请求
-                    //if(curIndex == this->mHasVm.size()) {     //没有找到
-                    if(curIndex == -1) {     //没有找到
-                        if(this->mNoHasVm.empty()){           //服务器没有存量了
-                            cout<<"超标:第"<< i <<"天" <<endl;
-                            return;
-                        }else{      //有存量
-                            Server t = this->mNoHasVm.back();
-                            this->mHasVm.emplace_back(t);           // 将没有部署虚拟机的第一个服务器，添加到队列中
-                            this->mNoHasVm.pop_back();   // 删除第一个
-                            curIndex = this->mHasVm.size()-1;
+                            /// 取出找到的下标
+                            for(auto it:res){
+                                if(it != -1){
+                                    curIndex = it;
+                                    break;
+                                }
+                            }
+
+                            if(curIndex == -1) {      /// 没有找到 取新的部署
+                                if(this->mNoHasVm.empty()){           //服务器没有存量了
+                                    cout<<"超标:第"<< i <<"天" <<endl;
+                                    return;
+                                }else{      /// 有存量
+                                    Server t = this->mNoHasVm.back();
+                                    this->mHasVm.emplace_back(t);           // 将没有部署虚拟机的第一个服务器，添加到队列中
+                                    this->mNoHasVm.pop_back();   // 删除第一个
+                                    curIndex = this->mHasVm.size()-1;
+                                }
+                            }
+                            /// 部署
+                            this->mHasVm[curIndex].A.first -= curCpus/2;
+                            this->mHasVm[curIndex].A.second -= curMemory/2;
+                            this->mHasVm[curIndex].B.first -= curCpus/2;
+                            this->mHasVm[curIndex].B.second -= curMemory/2;
+                            cout << "(" << this->mHasVm[curIndex].id << ")"<< endl;
+                            this->vmToServer[curReq.vmId]= make_pair(this->mHasVm[curIndex].id,0);    //虚拟机id映射到服务器id,结点(0双结点，1:A结点,2:B结点)
                         }
+                    }else{      /// 第1个策略 直接部署
+                        this->mHasVm[curIndex].A.first -= curCpus/2;
+                        this->mHasVm[curIndex].A.second -= curMemory/2;
+                        this->mHasVm[curIndex].B.first -= curCpus/2;
+                        this->mHasVm[curIndex].B.second -= curMemory/2;
+                        cout << "(" << this->mHasVm[curIndex].id << ")"<< endl;
+                        this->vmToServer[curReq.vmId]= make_pair(this->mHasVm[curIndex].id,0);    //虚拟机id映射到服务器id,结点(0双结点，1:A结点,2:B结点)
                     }
                 }
-            }else{
+            }else{      /// 单结点
                 /// A结点 符合
                 if(curServer.A.first >= curCpus && curServer.A.second >= curMemory){
-                    this->mHasVm[curIndex].A.first -= curCpus;
-                    this->mHasVm[curIndex].A.second -= curMemory;
-                    this->vmToServer[curReq.vmId]= make_pair(this->mHasVm[curIndex].id,1);
-                    cout << "(" << this->mHasVm[curIndex].id << ", A)"<< endl;
-                    curIndex = 0;
+                    /// 第1个策略
+                    /// 1)浪费 找下一个符合的
+                    if((curServer.A.first -curCpus <= 2 && curServer.A.second -curMemory >= 10) || (curServer.A.second -curMemory <= 2 && curServer.A.first -curCpus >= 10)){
+                        curIndex = -1;
+                        vector<int> res(NUM_THREADS,-1);//存放结果，服务器的下标
+                        int numSize =this->mHasVm.size()/NUM_THREADS; //划分每个线程处理的序列长度
+                        int node = 0;
+                        for (int l = 0; l < NUM_THREADS; ++l) {
+                            this->mThread[l] = std::thread(&Solution::getSingleIndex2,l,numSize,curCpus,curMemory,ref(res),ref(this->mHasVm),ref(node));   //调用函数要加类名，并且传引用，要用ref()
+                        }
+                        /// 等待所有线程结束，再取
+                        for (auto & l : this->mThread) {
+                            l.join();
+                        }
+
+                        /// 取出找到的下标
+                        for(auto it:res){
+                            if(it != -1){
+                                curIndex = it;
+                                break;
+                            }
+                        }
+
+                        if(curIndex == -1) {     /// 第1个策略没有找到
+                            /// 第2个策略  必须部署
+                            {
+                                curIndex = -1;
+                                vector<int> res(NUM_THREADS,-1);//存放结果，服务器的下标
+                                numSize =this->mHasVm.size()/NUM_THREADS; //划分每个线程处理的序列长度
+                                node = 0;   /// 结点
+                                for (int l = 0; l < NUM_THREADS; ++l) {
+                                    this->mThread[l] = std::thread(&Solution::getSingleIndex,l,numSize,curCpus,curMemory,ref(res),ref(this->mHasVm),ref(node));   //调用函数要加类名，并且传引用，要用ref()
+                                }
+                                /// 等待所有线程结束，再取
+                                for (auto & l : this->mThread) {
+                                    l.join();
+                                }
+
+                                /// 取出找到的下标
+                                for(auto it:res){
+                                    if(it != -1){
+                                        curIndex = it;
+                                        break;
+                                    }
+                                }
+
+                                //if(curIndex == this->mHasVm.size()) {     //没有找到
+                                if(curIndex == -1) {     //遍历完了
+                                    if(this->mNoHasVm.empty()){           //服务器没有存量了
+                                        cout<<"超标:第"<< i <<"天" <<endl;
+                                        return;
+                                    }else{      // 有存量
+                                        Server t = this->mNoHasVm.back();
+                                        this->mHasVm.emplace_back(t);           // 将没有部署虚拟机的第一个服务器，添加到队列中
+                                        this->mNoHasVm.pop_back();   // 删除第一个
+                                        curIndex = this->mHasVm.size()-1;
+
+                                        this->mHasVm[curIndex].A.first -= curCpus;
+                                        this->mHasVm[curIndex].A.second -= curMemory;
+                                        this->vmToServer[curReq.vmId]= make_pair(this->mHasVm[curIndex].id,1);
+                                        cout << "(" << this->mHasVm[curIndex].id << ", A)"<< endl;
+                                    }
+                                }else{          ///  找到了
+                                    if(node == 1){
+                                        this->mHasVm[curIndex].A.first -= curCpus;
+                                        this->mHasVm[curIndex].A.second -= curMemory;
+                                        this->vmToServer[curReq.vmId]= make_pair(this->mHasVm[curIndex].id,1);
+                                        cout << "(" << this->mHasVm[curIndex].id << ", A)"<< endl;
+                                    }else if(node == 2){
+                                        this->mHasVm[curIndex].B.first -= curCpus;
+                                        this->mHasVm[curIndex].B.second -= curMemory;
+                                        this->vmToServer[curReq.vmId]= make_pair(this->mHasVm[curIndex].id,1);
+                                        cout << "(" << this->mHasVm[curIndex].id << ", B)"<< endl;
+                                    }
+                                }
+                            }
+                        }else{          ///  找到了
+                            if(node == 1){
+                                this->mHasVm[curIndex].A.first -= curCpus;
+                                this->mHasVm[curIndex].A.second -= curMemory;
+                                this->vmToServer[curReq.vmId]= make_pair(this->mHasVm[curIndex].id,1);
+                                cout << "(" << this->mHasVm[curIndex].id << ", A)"<< endl;
+                            }else if(node == 2){
+                                this->mHasVm[curIndex].B.first -= curCpus;
+                                this->mHasVm[curIndex].B.second -= curMemory;
+                                this->vmToServer[curReq.vmId]= make_pair(this->mHasVm[curIndex].id,1);
+                                cout << "(" << this->mHasVm[curIndex].id << ", B)"<< endl;
+                            }
+                        }
+                    }else{  ///2)不浪费直接部署
+                        this->mHasVm[curIndex].A.first -= curCpus;
+                        this->mHasVm[curIndex].A.second -= curMemory;
+                        this->vmToServer[curReq.vmId]= make_pair(this->mHasVm[curIndex].id,1);
+                        cout << "(" << this->mHasVm[curIndex].id << ", A)"<< endl;
+                    }
                     /// B结点 符合
                 }else if(curServer.B.first >= curCpus && curServer.B.second >= curMemory){
-                    this->mHasVm[curIndex].B.first -= curCpus;
-                    this->mHasVm[curIndex].B.second -= curMemory;
-                    this->vmToServer[curReq.vmId]= make_pair(this->mHasVm[curIndex].id,2);
-                    cout << "(" << this->mHasVm[curIndex].id << ", B)"<< endl;
-                    curIndex = 0;
+                    /// 第1个策略
+                    /// 浪费
+                    if((curServer.B.first -curCpus <= 2 && curServer.B.second -curMemory >= 10) || (curServer.B.second -curMemory <= 2 && curServer.B.first -curCpus >= 10)){
+                        curIndex = -1;
+                        vector<int> res(NUM_THREADS,-1);//存放结果，服务器的下标
+                        int numSize =this->mHasVm.size()/NUM_THREADS; //划分每个线程处理的序列长度
+                        int node = 0;
+                        for (int l = 0; l < NUM_THREADS; ++l) {
+                            this->mThread[l] = std::thread(&Solution::getSingleIndex2,l,numSize,curCpus,curMemory,ref(res),ref(this->mHasVm),ref(node));   //调用函数要加类名，并且传引用，要用ref()
+                        }
+                        /// 等待所有线程结束，再取
+                        for (auto & l : this->mThread) {
+                            l.join();
+                        }
+
+                        /// 取出找到的下标
+                        for(auto it:res){
+                            if(it != -1){
+                                curIndex = it;
+                                break;
+                            }
+                        }
+                        if(curIndex == -1){     /// 第1个策略没有找到
+                            /// 第2策略 必须部署
+                            {
+                                curIndex = -1;
+                                vector<int> res(NUM_THREADS,-1);//存放结果，服务器的下标
+                                numSize =this->mHasVm.size()/NUM_THREADS; //划分每个线程处理的序列长度
+                                node = 0;   /// 结点
+                                for (int l = 0; l < NUM_THREADS; ++l) {
+                                    this->mThread[l] = std::thread(&Solution::getSingleIndex,l,numSize,curCpus,curMemory,ref(res),ref(this->mHasVm),ref(node));   //调用函数要加类名，并且传引用，要用ref()
+                                }
+                                /// 等待所有线程结束，再取
+                                for (auto & l : this->mThread) {
+                                    l.join();
+                                }
+
+                                /// 取出找到的下标
+                                for(auto it:res){
+                                    if(it != -1){
+                                        curIndex = it;
+                                        break;
+                                    }
+                                }
+                                //if(curIndex == this->mHasVm.size()) {     //没有找到
+                                if(curIndex == -1) {     //遍历完了
+                                    if(this->mNoHasVm.empty()){           //服务器没有存量了
+                                        cout<<"超标:第"<< i <<"天" <<endl;
+                                        return;
+                                    }else{      /// 找到了
+                                        Server t = this->mNoHasVm.back();
+                                        this->mHasVm.emplace_back(t);           // 将没有部署虚拟机的第一个服务器，添加到队列中
+                                        this->mNoHasVm.pop_back();   // 删除第一个
+                                        curIndex = this->mHasVm.size()-1;
+
+                                        this->mHasVm[curIndex].A.first -= curCpus;
+                                        this->mHasVm[curIndex].A.second -= curMemory;
+                                        this->vmToServer[curReq.vmId]= make_pair(this->mHasVm[curIndex].id,1);
+                                        cout << "(" << this->mHasVm[curIndex].id << ", A)"<< endl;
+                                    }
+                                }else{  /// 找到了
+                                    if(node == 1){
+                                        this->mHasVm[curIndex].A.first -= curCpus;
+                                        this->mHasVm[curIndex].A.second -= curMemory;
+                                        this->vmToServer[curReq.vmId]= make_pair(this->mHasVm[curIndex].id,1);
+                                        cout << "(" << this->mHasVm[curIndex].id << ", A)"<< endl;
+                                    }else if(node == 2){
+                                        this->mHasVm[curIndex].B.first -= curCpus;
+                                        this->mHasVm[curIndex].B.second -= curMemory;
+                                        this->vmToServer[curReq.vmId]= make_pair(this->mHasVm[curIndex].id,1);
+                                        cout << "(" << this->mHasVm[curIndex].id << ", B)"<< endl;
+                                    }
+                                }
+                            }
+                        }else{
+                            if(node == 1){
+                                this->mHasVm[curIndex].A.first -= curCpus;
+                                this->mHasVm[curIndex].A.second -= curMemory;
+                                this->vmToServer[curReq.vmId]= make_pair(this->mHasVm[curIndex].id,1);
+                                cout << "(" << this->mHasVm[curIndex].id << ", A)"<< endl;
+                            }else if(node == 2){
+                                this->mHasVm[curIndex].B.first -= curCpus;
+                                this->mHasVm[curIndex].B.second -= curMemory;
+                                this->vmToServer[curReq.vmId]= make_pair(this->mHasVm[curIndex].id,1);
+                                cout << "(" << this->mHasVm[curIndex].id << ", B)"<< endl;
+                            }
+                        }
+                    }else{  /// 不浪费
+                        this->mHasVm[curIndex].B.first -= curCpus;
+                        this->mHasVm[curIndex].B.second -= curMemory;
+                        this->vmToServer[curReq.vmId]= make_pair(this->mHasVm[curIndex].id,2);
+                        cout << "(" << this->mHasVm[curIndex].id << ", B)"<< endl;
+                    }
                     /// 不符合
                 }else{
                     //curIndex++; ///下一个服务器
 
-                    curIndex = -1;
-                    vector<int> res(NUM_THREADS,-1);//存放结果，服务器的下标
-                    int numSize =this->mHasVm.size()/NUM_THREADS; //划分每个线程处理的序列长度
-                    for (int l = 0; l < NUM_THREADS; ++l) {
-                        this->mThread[l] = std::thread(&Solution::getSingleIndex,l,numSize,curCpus,curMemory,ref(res),ref(this->mHasVm));   //调用函数要加类名，并且传引用，要用ref()
-                    }
-                    /// 等待所有线程结束，再取
-                    for (auto & l : this->mThread) {
-                        l.join();
-                    }
-
-                    /// 取出找到的下标
-                    for(auto it:res){
-                        if(it != -1){
-                            curIndex = it;
-                            break;
+                    /// 第1个策略
+                    {
+                        curIndex = -1;
+                        vector<int> res(NUM_THREADS,-1);//存放结果，服务器的下标
+                        int numSize =this->mHasVm.size()/NUM_THREADS; //划分每个线程处理的序列长度
+                        int node = 0;
+                        for (int l = 0; l < NUM_THREADS; ++l) {
+                            this->mThread[l] = std::thread(&Solution::getSingleIndex2,l,numSize,curCpus,curMemory,ref(res),ref(this->mHasVm),ref(node));   //调用函数要加类名，并且传引用，要用ref()
                         }
-                    }
+                        /// 等待所有线程结束，再取
+                        for (auto & l : this->mThread) {
+                            l.join();
+                        }
 
-                    j--;    /// 保持当前请求
-                     //if(curIndex == this->mHasVm.size()) {     //没有找到
-                    if(curIndex == -1) {     //遍历完了
-                        if(this->mNoHasVm.empty()){           //服务器没有存量了
-                            cout<<"超标:第"<< i <<"天" <<endl;
-                            return;
-                        }else{      // 有存量
-                            Server t = this->mNoHasVm.back();
-                            this->mHasVm.emplace_back(t);           // 将没有部署虚拟机的第一个服务器，添加到队列中
-                            this->mNoHasVm.pop_back();   // 删除第一个
-                            curIndex = this->mHasVm.size()-1;
+                        /// 取出找到的下标
+                        for(auto it:res){
+                            if(it != -1){
+                                curIndex = it;
+                                break;
+                            }
+                        }
+                        if(curIndex == -1){      /// 第1个策略没有找到
+                            /// 第2个策略
+                            {
+                                curIndex = -1;
+                                vector<int> res(NUM_THREADS,-1);//存放结果，服务器的下标
+                                numSize =this->mHasVm.size()/NUM_THREADS; //划分每个线程处理的序列长度
+                                node = 0;
+                                for (int l = 0; l < NUM_THREADS; ++l) {
+                                    this->mThread[l] = std::thread(&Solution::getSingleIndex,l,numSize,curCpus,curMemory,ref(res),ref(this->mHasVm),ref(node));   //调用函数要加类名，并且传引用，要用ref()
+                                }
+                                /// 等待所有线程结束，再取
+                                for (auto & l : this->mThread) {
+                                    l.join();
+                                }
+
+                                /// 取出找到的下标
+                                for(auto it:res){
+                                    if(it != -1){
+                                        curIndex = it;
+                                        break;
+                                    }
+                                }
+
+                                //if(curIndex == this->mHasVm.size()) {     //没有找到
+                                if(curIndex == -1) {     //遍历完了
+                                    if(this->mNoHasVm.empty()){           //服务器没有存量了
+                                        cout<<"超标:第"<< i <<"天" <<endl;
+                                        return;
+                                    }else{      // 有存量
+                                        Server t = this->mNoHasVm.back();
+                                        this->mHasVm.emplace_back(t);           // 将没有部署虚拟机的第一个服务器，添加到队列中
+                                        this->mNoHasVm.pop_back();   // 删除第一个
+                                        curIndex = this->mHasVm.size()-1;
+
+                                        this->mHasVm[curIndex].A.first -= curCpus;
+                                        this->mHasVm[curIndex].A.second -= curMemory;
+                                        this->vmToServer[curReq.vmId]= make_pair(this->mHasVm[curIndex].id,1);
+                                        cout << "(" << this->mHasVm[curIndex].id << ", A)"<< endl;
+                                    }
+                                }else{
+                                    if(node == 1){
+                                        this->mHasVm[curIndex].A.first -= curCpus;
+                                        this->mHasVm[curIndex].A.second -= curMemory;
+                                        this->vmToServer[curReq.vmId]= make_pair(this->mHasVm[curIndex].id,1);
+                                        cout << "(" << this->mHasVm[curIndex].id << ", A)"<< endl;
+                                    }else if(node == 2){
+                                        this->mHasVm[curIndex].B.first -= curCpus;
+                                        this->mHasVm[curIndex].B.second -= curMemory;
+                                        this->vmToServer[curReq.vmId]= make_pair(this->mHasVm[curIndex].id,1);
+                                        cout << "(" << this->mHasVm[curIndex].id << ", B)"<< endl;
+                                    }
+                                }
+                            }
+                        }else{           /// 第1个策略找到了
+                            if(node == 1){
+                                this->mHasVm[curIndex].A.first -= curCpus;
+                                this->mHasVm[curIndex].A.second -= curMemory;
+                                this->vmToServer[curReq.vmId]= make_pair(this->mHasVm[curIndex].id,1);
+                                cout << "(" << this->mHasVm[curIndex].id << ", A)"<< endl;
+                            }else if(node == 2){
+                                this->mHasVm[curIndex].B.first -= curCpus;
+                                this->mHasVm[curIndex].B.second -= curMemory;
+                                this->vmToServer[curReq.vmId]= make_pair(this->mHasVm[curIndex].id,1);
+                                cout << "(" << this->mHasVm[curIndex].id << ", B)"<< endl;
+                            }
                         }
                     }
                 }
