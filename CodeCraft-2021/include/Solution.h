@@ -13,6 +13,8 @@
 #include "common.h"
 #include "Helper.h"
 #define NUM_THREADS 4
+#define WASTER_LOW 2
+#define WASTER_HIGH 15
 
 class Solution {
 public:
@@ -59,9 +61,9 @@ public:
     };
 
     static void getDoubleIndex(int tid,int numSize,int cpu,int memory,std::vector<int> &res,std::vector<Server> &s); //获取下一个服务器的下标
-    static void getSingleIndex(int tid,int numSize,int cpu,int memory,std::vector<int> &res,std::vector<Server> &s,int &node); //获取下一个服务器的下标
+    static void getSingleIndex(int tid,int numSize,int cpu,int memory,std::vector<int> &res,std::vector<Server> &s,std::vector<int> &node); //获取下一个服务器的下标
     static void getDoubleIndex2(int tid,int numSize,int cpu,int memory,std::vector<int> &res,std::vector<Server> &s);
-    static void getSingleIndex2(int tid,int numSize,int cpu,int memory,std::vector<int> &res,std::vector<Server> &s,int &node);
+    static void getSingleIndex2(int tid,int numSize,int cpu,int memory,std::vector<int> &res,std::vector<Server> &s,std::vector<int> &node);
 
 
 public:
