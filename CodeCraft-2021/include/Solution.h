@@ -25,6 +25,8 @@ public:
     void run();
     /** 输入处理 */
     void input();
+    /** 输出处理 */
+    void myOutput();
     /** 决策（购买，迁移，部署） */
     void judge();
     /** 部署 */
@@ -115,6 +117,9 @@ public:
     std::vector<Server> mNoHasVm; //没有部署虚拟机的服务器
 
     std::thread  mThread[NUM_THREADS];      //创建4个线程
+
+    std::vector<std::string> mDeployMsg;    /// 保存部署输出的信息
+    int mMaxServerId;                   /// 已部署过的最大的服务器id
 };
 
 

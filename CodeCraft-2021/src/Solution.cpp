@@ -20,6 +20,7 @@ Solution::Solution(string &filename) {
     this->mVMTypeNum = 0;
     this->mNumServerTypeByPercent = 0;
     this->mMax = 0;
+    this->mMaxServerId = INT_MIN;
 }
 
 Solution::Solution() {
@@ -28,7 +29,7 @@ Solution::Solution() {
     this->mVMTypeNum = 0;
     this->mNumServerTypeByPercent = 0;
     this->mMax = 0;
-
+    this->mMaxServerId = INT_MIN;
 }
 
 /**
@@ -37,8 +38,16 @@ Solution::Solution() {
 void Solution::run() {
     this->input();
     this->judge();
+    this->myOutput();
 }
 
+
+void Solution::myOutput(){
+    this->mDeployMsg[1] = "("+this->mSelectedServerType.serverTypeName+", "+to_string(this->mMaxServerId+1)+")";
+    for(auto &it:this->mDeployMsg){
+        cout << it << endl;
+    }
+}
 /**
  * 处理数据输入
  */
@@ -214,9 +223,9 @@ void Solution::input() {
     /// 统计各类服务器所需的数量，以及总成本
     //long long sum = 0;        //总成本
     if (this->mServerTypeNum > 80)
-        this->mMax = 3246;      // 第2个数据集3264
+        this->mMax = 10000;      // 第2个数据集3264  3246
     else
-        this->mMax = 3734;      //第1个数据集 3737
+        this->mMax = 10000;      //第1个数据集 3737 3734
 
 //    for (int i = 0; i < this->mNumServerTypeByPercent;i++) {
 //        int cur = 0;
@@ -348,9 +357,12 @@ void Solution::getMemoryPerDay(int i, vector<Request> &vec) {
 void Solution::judge() {
     for (int i = 0; i < this->mDays; ++i) {
         if (i == 0) {     /// (1) 第一天购买所需要的全部服务器
-            cout << "(purchase, 1)" << endl;
+            //cout << "(purchase, 1)" << endl;
+            this->mDeployMsg.emplace_back("(purchase, 1)");
+
             int tC = this->mSelectedServerType.cpus / 2, tM = this->mSelectedServerType.memory / 2;
-            cout << "(" << this->mSelectedServerType.serverTypeName << ", " << this->mMax << ")" << endl;
+            //cout << "(" << this->mSelectedServerType.serverTypeName << ", " << this->mMax << ")" << endl;
+            this->mDeployMsg.emplace_back("("+this->mSelectedServerType.serverTypeName+", "+to_string(this->mMax)+")");
             pair<int, int> t = {tC, tM};
             for (int k = this->mMax - 1; k >= 0; k--) {       //id 从大到小
                 Server s = {this->mSelectedServerType.serverTypeName, k, t, t};
@@ -359,11 +371,13 @@ void Solution::judge() {
                 this->mServerId++;
             }
         } else {
-            cout << "(purchase, 0)" << endl;
+            //cout << "(purchase, 0)" << endl;
+            this->mDeployMsg.emplace_back("(purchase, 0)");
         }
 
         /// (2) 迁移
-        cout << "(migration, 0)" << endl;
+        //cout << "(migration, 0)" << endl;
+        this->mDeployMsg.emplace_back("(migration, 0)");
 
         /// (3) 部署
 //        clock_t start = clock();
@@ -550,7 +564,10 @@ void Solution::deploy(int i, int k) {
                     this->mHasVm[curIndex].A.second -= curMemory / 2;
                     this->mHasVm[curIndex].B.first -= curCpus / 2;
                     this->mHasVm[curIndex].B.second -= curMemory / 2;
-                    cout << "(" << this->mHasVm[curIndex].id << ")" << endl;
+                    //cout << "(" << this->mHasVm[curIndex].id << ")" << endl;
+                    this->mDeployMsg.emplace_back("("+to_string(this->mHasVm[curIndex].id)+")");
+                    this->mMaxServerId = max(this->mMaxServerId,this->mHasVm[curIndex].id);
+
                     this->vmToServer[curReq.vmId] = make_pair(this->mHasVm[curIndex].id,
                                                               0);    //虚拟机id映射到服务器id,结点(0双结点，1:A结点,2:B结点)
                 } else {      /// 不浪费
@@ -558,7 +575,10 @@ void Solution::deploy(int i, int k) {
                     this->mHasVm[curIndex].A.second -= curMemory / 2;
                     this->mHasVm[curIndex].B.first -= curCpus / 2;
                     this->mHasVm[curIndex].B.second -= curMemory / 2;
-                    cout << "(" << this->mHasVm[curIndex].id << ")" << endl;
+                    //cout << "(" << this->mHasVm[curIndex].id << ")" << endl;
+                    this->mDeployMsg.emplace_back("("+to_string(this->mHasVm[curIndex].id)+")");
+                    this->mMaxServerId = max(this->mMaxServerId,this->mHasVm[curIndex].id);
+
                     this->vmToServer[curReq.vmId] = make_pair(this->mHasVm[curIndex].id,
                                                               0);    //虚拟机id映射到服务器id,结点(0双结点，1:A结点,2:B结点)
                 }
@@ -641,19 +661,25 @@ void Solution::deploy(int i, int k) {
                             this->mHasVm[curIndex].A.first -= curCpus;
                             this->mHasVm[curIndex].A.second -= curMemory;
                             this->vmToServer[curReq.vmId] = make_pair(this->mHasVm[curIndex].id, 1);
-                            cout << "(" << this->mHasVm[curIndex].id << ", A)" << endl;
+                            //cout << "(" << this->mHasVm[curIndex].id << ", A)" << endl;
+                            this->mDeployMsg.emplace_back("("+to_string(this->mHasVm[curIndex].id)+", A)");
+                            this->mMaxServerId = max(this->mMaxServerId,this->mHasVm[curIndex].id);
                         }
                     } else {          ///  找到了
                         if (curNode == 1) {
                             this->mHasVm[curIndex].A.first -= curCpus;
                             this->mHasVm[curIndex].A.second -= curMemory;
                             this->vmToServer[curReq.vmId] = make_pair(this->mHasVm[curIndex].id, 1);
-                            cout << "(" << this->mHasVm[curIndex].id << ", A)" << endl;
+                            //cout << "(" << this->mHasVm[curIndex].id << ", A)" << endl;
+                            this->mDeployMsg.emplace_back("("+to_string(this->mHasVm[curIndex].id)+", A)");
+                            this->mMaxServerId = max(this->mMaxServerId,this->mHasVm[curIndex].id);
                         } else if (curNode == 2) {
                             this->mHasVm[curIndex].B.first -= curCpus;
                             this->mHasVm[curIndex].B.second -= curMemory;
                             this->vmToServer[curReq.vmId] = make_pair(this->mHasVm[curIndex].id, 2);
-                            cout << "(" << this->mHasVm[curIndex].id << ", B)" << endl;
+                            //cout << "(" << this->mHasVm[curIndex].id << ", B)" << endl;
+                            this->mDeployMsg.emplace_back("("+to_string(this->mHasVm[curIndex].id)+", B)");
+                            this->mMaxServerId = max(this->mMaxServerId,this->mHasVm[curIndex].id);
                         }
                     }
                 } else {          ///  找到了
@@ -661,12 +687,16 @@ void Solution::deploy(int i, int k) {
                         this->mHasVm[curIndex].A.first -= curCpus;
                         this->mHasVm[curIndex].A.second -= curMemory;
                         this->vmToServer[curReq.vmId] = make_pair(this->mHasVm[curIndex].id, 1);
-                        cout << "(" << this->mHasVm[curIndex].id << ", A)" << endl;
+                        //cout << "(" << this->mHasVm[curIndex].id << ", A)" << endl;
+                        this->mDeployMsg.emplace_back("("+to_string(this->mHasVm[curIndex].id)+", A)");
+                        this->mMaxServerId = max(this->mMaxServerId,this->mHasVm[curIndex].id);
                     } else if (curNode == 2) {
                         this->mHasVm[curIndex].B.first -= curCpus;
                         this->mHasVm[curIndex].B.second -= curMemory;
                         this->vmToServer[curReq.vmId] = make_pair(this->mHasVm[curIndex].id, 2);
-                        cout << "(" << this->mHasVm[curIndex].id << ", B)" << endl;
+                        //cout << "(" << this->mHasVm[curIndex].id << ", B)" << endl;
+                        this->mDeployMsg.emplace_back("("+to_string(this->mHasVm[curIndex].id)+", B)");
+                        this->mMaxServerId = max(this->mMaxServerId,this->mHasVm[curIndex].id);
                     }
                 }
             }
