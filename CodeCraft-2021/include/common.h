@@ -58,6 +58,8 @@ struct Request{
     std::string requestType;   //请求类型，add 或者 del
     std::string vmTypeName;   //虚拟机类型[,20]
     int vmId;              //服务器id  int范围 [0,2^32]
+    int index;      // 输出下标从0开始
+    bool flag;      /// 当天部署，当天删除的，为true，否则为false;
 };
 
 /***************************************************/

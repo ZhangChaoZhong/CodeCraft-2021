@@ -29,6 +29,8 @@ public:
     void myOutput();
     /** 决策（购买，迁移，部署） */
     void judge();
+    /** 迁移 */
+    void migration(int i);
     /** 部署 */
     void deploy(int i,int k);
 
@@ -39,7 +41,7 @@ public:
     /** 解析添加请求 */
     void inputRequest(std::vector<Request> &vec,std::string &requestType,std::string &reqVmType,std::string &reqId);
     /** 解析删除请求 */
-    void inputRequest(std::vector<Request> &vec,std::string &requestType,std::string &reqId);
+    static void inputRequest(std::vector<Request> &vecDel,std::vector<Request> &vec,std::string &requestType,std::string &reqId);
 
     /** 统计每一天请求的虚拟机的内存需求量，删除量 */
     void getMemoryPerDay(int i,std::vector<Request> &vec);
@@ -92,6 +94,7 @@ public:
     /// 请求
     int mDays;                                                           //请求天数
     std::vector<std::vector<Request>> mRequest;                          //请求序列
+    std::vector<std::vector<Request>> mRequestDel;                       //删除序列
 
     /// 划分，选取服务器类型
     int mNumServerTypeByPercent;                                         //按比值划分的服务器类型数量
@@ -116,10 +119,15 @@ public:
     std::vector<Server> mHasVm; //已经有部署虚拟机的服务器
     std::vector<Server> mNoHasVm; //没有部署虚拟机的服务器
 
+    std::vector<Server> mHasVmDel; //部署当天删除的虚拟机的服务器 用来迁移
+
     std::thread  mThread[NUM_THREADS];      //创建4个线程
 
     std::vector<std::string> mDeployMsg;    /// 保存部署输出的信息
     int mMaxServerId;                   /// 已部署过的最大的服务器id
+
+    int mVmIndex;       /// 虚拟机初始化的下标
+    std::vector<int> mCurSaveVM;        /// 当天之前的存在虚拟机数量
 };
 
 
