@@ -31,6 +31,7 @@ public:
     void judge();
     /** 迁移 */
     void migration(int i);
+    void migration2(int i);
     /** 部署 */
     void deploy(int i,int k);
 
@@ -67,13 +68,15 @@ public:
     static bool serverCmpCM(const Server &a,const Server &b){                    //按CPU+内存的剩余总量 从小到大排序
         return (a.A.first+a.A.second+a.B.first+a.B.second) < (b.A.first+b.A.second+b.B.first+b.B.second);     //不能写>=
     };
-
+    static bool serverCmpExtraMax(const Server &a,const Server &b){                    //按剩余的cpu+内存的值，从大到小排序
+        return (a.A.first+a.A.second+a.B.first+a.B.second) > (b.A.first+b.A.second+b.B.first+b.B.second);
+    };
     static void getDoubleIndex(int tid,int numSize,int cpu,int memory,std::vector<int> &res,std::vector<Server> &s,const int* arr); //获取下一个服务器的下标
     static void getSingleIndex(int tid,int numSize,int cpu,int memory,std::vector<int> &res,std::vector<Server> &s,std::vector<int> &node,const int* arr); //获取下一个服务器的下标
     static void getDoubleIndex2(int tid,int numSize,int cpu,int memory,std::vector<int> &res,std::vector<Server> &s,const int* arr);
     static void getSingleIndex2(int tid,int numSize,int cpu,int memory,std::vector<int> &res,std::vector<Server> &s,std::vector<int> &node,const int* arr);
-    static void  getDoubleIndexM(int tid,int numSize,int cpu,int memory,std::vector<int> &res,std::vector<Server> &s,int serverId);
-    static void  getSingleIndexM(int tid,int numSize,int cpu,int memory,std::vector<int> &res,std::vector<Server> &s,std::vector<int> &node,int serverId);
+    static void  getDoubleIndexM(int tid,int numSize,int cpu,int memory,std::vector<int> &res,std::vector<Server> &s,int serverId,const int* arr);
+    static void  getSingleIndexM(int tid,int numSize,int cpu,int memory,std::vector<int> &res,std::vector<Server> &s,std::vector<int> &node,int serverId,const int* arr);
 
 public:
     std::string mFilename;          //输入的训练文件名
@@ -135,6 +138,7 @@ public:
     int mVmIndex;       /// 虚拟机初始化的下标
     std::vector<int> mCurSaveVM;        /// 当天之前的存在虚拟机数量
     int mMigriationNum;
+    std::unordered_map<int,std::vector<int>> mServerIdToVMSeq;      /// 服务器id映射到虚拟机id序列
 };
 
 

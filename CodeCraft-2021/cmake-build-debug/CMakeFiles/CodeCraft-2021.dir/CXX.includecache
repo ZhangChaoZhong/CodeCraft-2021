@@ -30,25 +30,9 @@ Helper.h
 iostream
 -
 
-/Users/zcz/CLionProjects/zczPro/CodeCraft-2021/CodeCraft-2021/src/Solution.cpp
-Solution.h
-/Users/zcz/CLionProjects/zczPro/CodeCraft-2021/CodeCraft-2021/src/Solution.h
-algorithm
--
-string
--
-vector
--
-set
--
+/Users/zcz/CLionProjects/zczPro/CodeCraft-2021/CodeCraft-2021/CodeCraft-2021.cpp
 iostream
 -
-cmath
--
-thread
--
-climits
--
-cstring
--
+Solution.h
+/Users/zcz/CLionProjects/zczPro/CodeCraft-2021/CodeCraft-2021/Solution.h
 
