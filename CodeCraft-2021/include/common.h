@@ -32,7 +32,7 @@ struct Server{
     int id;               //服务器id  int范围 [0,2^32]
     std::pair<int,int> A;
     std::pair<int,int> B;
-    int index;  //部署服务器数组中的下标
+    bool flag;  /// true 为取回空序列了；flase还在愿序列中
 };
 
 /*

@@ -11,6 +11,7 @@
 #include <cmath>
 #include <thread>
 #include <climits>
+#include <cstring>
 
 using namespace std;
 
@@ -23,6 +24,8 @@ Solution::Solution(string &filename) {
     this->mMax = 0;
     this->mMaxServerId = INT_MIN;
     this->mVmIndex = 0;
+    this->mMigriationNum=0;
+    memset(this->isEmpty, true, sizeof(bool)*10000);
 }
 
 Solution::Solution() {
@@ -33,6 +36,8 @@ Solution::Solution() {
     this->mMax = 0;
     this->mMaxServerId = INT_MIN;
     this->mVmIndex = 0;
+    this->mMigriationNum=0;
+    memset(this->isEmpty, 0, sizeof(int)*10000);
 }
 
 /**
@@ -42,7 +47,8 @@ void Solution::run() {
     this->input();
     this->judge();
     this->myOutput();
-    cout << this->mMaxServerId << endl;
+    //cout << this->mMaxServerId << endl;
+    //cout << this->mMigriationNum<<endl;
 }
 
 
@@ -228,11 +234,11 @@ void Solution::input() {
 
     /// 统计各类服务器所需的数量，以及总成本
     //long long sum = 0;        //总成本
-    //this->mMax = 10000;   // 第2个数据集  3244  第1个数据集    3715
-    if(this->mServerTypeNum > 80)
-        this->mMax = 10000;
-    else
-        this->mMax = 10000; /// 动态买 买多
+    this->mMax = 10000;   // 第2个数据集  3244  第1个数据集    3715
+//    if(this->mServerTypeNum > 80)
+//        this->mMax = 10000;
+//    else
+//        this->mMax = 10000; /// 动态买 买多
 
 //    for (int i = 0; i < this->mNumServerTypeByPercent;i++) {
 //        int cur = 0;
@@ -390,10 +396,11 @@ void Solution::getMemoryPerDay(int i, vector<Request> &vec) {
 /********************************************************************/
 
 void Solution::migration(int i){
-
-    int migrationNum =min(int(this->mRequestDel[i].size()), int(this->mCurSaveVM[i-1]*2.0/1000));       //min(迁移数量，删除序列的大小)
+    int migrationNum =min(int(this->mRequestDel[i].size()), int(this->mCurSaveVM[i-1]*5.0/1000));       //min(迁移数量，删除序列的大小)
     //cout << "(migration, "<<migrationNum<<")" << endl;
     this->mDeployMsg.emplace_back("(migration, "+to_string(migrationNum)+")");
+    mMigriationNum += migrationNum;
+
     for(int j=0;j<migrationNum;j++){          /// 遍历当天的删除序列 就是要迁移的序列   个数=迁移数量
         auto &curReq=this->mRequestDel[i][j];
         VMType vmTypeTmp = this->mMVTypeMap[this->vmToVMType[curReq.vmId]];
@@ -401,13 +408,7 @@ void Solution::migration(int i){
         int curMemory = vmTypeTmp.memory;
         int targetServerId = this->vmToServer[curReq.vmId].first;       // 虚拟机id 之前映射的服务器id
 
-        int index = 0;
-        for (int l = 0; l < this->mHasVm.size(); l++) { //找出下标
-            if (this->mHasVm[l].id == targetServerId) {
-                index = l;
-                break;
-            }
-        }
+        int index = targetServerId;
 
         if (vmTypeTmp.isDouble) {//是否为双结点
             this->mHasVm[index].A.first += curCpus / 2;    //先按vmid找服务器id，再找到对应服务器
@@ -427,16 +428,9 @@ void Solution::migration(int i){
         /// 删除虚拟机后，判断是否为服务器是否没有部署虚拟机了
         if (this->mHasVm[index].A.first + this->mHasVm[index].B.first == mSelectedServerType.cpus &&
             this->mHasVm[index].A.second + this->mHasVm[index].B.second == mSelectedServerType.memory) {
-            Server tmp = this->mHasVm[index];
-            auto iter = this->mHasVm.begin();
-            while (iter != this->mHasVm.end()) {      //删除对应的服务器
-                if ((*iter).id == targetServerId) {
-                    this->mHasVm.erase(iter);
-                    break;
-                }
-                iter++;
-            }
-            this->mHasVm.emplace_back(tmp);     /// 放到队尾
+            this->mNoHasVm.emplace_back(this->mHasVm[index]);     //将服务器添加到空的队列中
+            this->isEmpty[index] = 0; ///更新
+            //sort(this->mNoHasVm.begin(), this->mNoHasVm.end(), serverCmpId);  //按id从大到小排序
         }
 
         /// 迁移后 重新部署
@@ -446,9 +440,18 @@ void Solution::migration(int i){
                 return;
             }
             Server t = this->mNoHasVm.back();
+            Server tmp = t;
+            if(t.id == targetServerId){     /// 服务器id与之前相同
+                this->mNoHasVm.pop_back();   // 删除最后一个
+                t = this->mNoHasVm.back();
+                this->mNoHasVm.pop_back();
+                this->mNoHasVm.emplace_back(tmp); /// 把之前拿回去
+            }else{
+                this->mNoHasVm.pop_back();   // 删除最后一个
+            }
             this->mHasVmDel.emplace_back(t);           // 将没有部署虚拟机的第一个服务器，添加到队列中
-            this->mNoHasVm.pop_back();   // 删除第一个
         }
+
         /// 直接部署
         if(vmTypeTmp.isDouble){     /// 双结点 迁移后部署
             /// 第2策略   必须部署   上面成功，下面不运行上面成功，下面不运行
@@ -456,9 +459,9 @@ void Solution::migration(int i){
             vector<int> res2(NUM_THREADS, -1);//存放结果，服务器的下标
             int numSize = this->mHasVmDel.size() / NUM_THREADS; //划分每个线程处理的序列长度
             for (int l = 0; l < NUM_THREADS; ++l) {
-                this->mThread[l] = std::thread(&Solution::getDoubleIndex, l, numSize, curCpus / 2,
+                this->mThread[l] = std::thread(&Solution::getDoubleIndexM, l, numSize, curCpus / 2,
                                                curMemory / 2, ref(res2),
-                                               ref(this->mHasVmDel));//调用函数要加类名，并且传引用，要用ref()
+                                               ref(this->mHasVmDel),targetServerId);//调用函数要加类名，并且传引用，要用ref()
             }
             /// 等待所有线程结束，再取
             for (auto &l : this->mThread) {
@@ -479,9 +482,17 @@ void Solution::migration(int i){
                     return;
                 } else {      /// 有存量
                     Server t = this->mNoHasVm.back();
+                    Server tmp = t;
+                    if(t.id == targetServerId){     /// 服务器id与之前相同
+                        this->mNoHasVm.pop_back();   // 删除最后一个
+                        t = this->mNoHasVm.back();
+                        this->mNoHasVm.pop_back();
+                        this->mNoHasVm.emplace_back(tmp); /// 把之前拿回去
+                    }else{
+                        this->mNoHasVm.pop_back();   // 删除最后一个
+                    }
                     this->mHasVmDel.emplace_back(t);           // 将没有部署虚拟机的第一个服务器，添加到队列中
-                    this->mNoHasVm.pop_back();   // 删除第一个
-                    curIndex = this->mHasVmDel.size() - 1;
+                    curIndex = this->mHasVmDel.size()-1;
                 }
             }
 
@@ -503,9 +514,9 @@ void Solution::migration(int i){
             int curNode = -1;   /// 结点
             vector<int> node(NUM_THREADS, -1);
             for (int l = 0; l < NUM_THREADS; ++l) {
-                this->mThread[l] = std::thread(&Solution::getSingleIndex, l, numSize, curCpus, curMemory,
+                this->mThread[l] = std::thread(&Solution::getSingleIndexM, l, numSize, curCpus, curMemory,
                                                ref(res2), ref(this->mHasVmDel),
-                                               ref(node));   //调用函数要加类名，并且传引用，要用ref()
+                                               ref(node),targetServerId);   //调用函数要加类名，并且传引用，要用ref()
             }
             /// 等待所有线程结束，再取
             for (auto &l : this->mThread) {
@@ -533,9 +544,17 @@ void Solution::migration(int i){
                     return;
                 } else {      // 有存量
                     Server t = this->mNoHasVm.back();
+                    Server tmp = t;
+                    if(t.id == targetServerId){     /// 服务器id与之前相同
+                        this->mNoHasVm.pop_back();   // 删除最后一个
+                        t = this->mNoHasVm.back();
+                        this->mNoHasVm.pop_back();
+                        this->mNoHasVm.emplace_back(tmp); /// 把之前拿回去
+                    }else{
+                        this->mNoHasVm.pop_back();   // 删除最后一个
+                    }
                     this->mHasVmDel.emplace_back(t);           // 将没有部署虚拟机的第一个服务器，添加到队列中
-                    this->mNoHasVm.pop_back();   // 删除第一个
-                    curIndex = this->mHasVmDel.size() - 1;
+                    curIndex = this->mHasVmDel.size()-1;
 
                     this->mHasVmDel[curIndex].A.first -= curCpus;
                     this->mHasVmDel[curIndex].A.second -= curMemory;
@@ -562,8 +581,20 @@ void Solution::migration(int i){
                 }
             }
         }
-
     }
+
+    sort(this->mHasVmDel.begin(),this->mHasVmDel.end(),serverCmpIdDel);     /// 从小到大
+    /// 将删空的
+    for(auto it:this->mHasVmDel){
+        if(it.id <= this->mHasVm.size()-1){     /// 小于等于  在里面
+            this->mHasVm[it.id] = it;
+        }else{
+            this->mHasVm.emplace_back(it);      ///  直接放到末尾
+        }
+        this->isEmpty[it.id] = 1;
+    }
+    /// 清空
+    this->mHasVmDel.erase(this->mHasVmDel.begin(),this->mHasVmDel.end());
 }
 
 
@@ -583,6 +614,7 @@ void Solution::judge() {
             pair<int, int> t = {tC, tM};
             for (int k = this->mMax - 1; k >= 0; k--) {       //id 从大到小
                 Server s = {this->mSelectedServerType.serverTypeName, k, t, t};
+                s.flag = false;     /// 默认没有被删空
                 //this->mServer[this->mServerId] = s;      //加入购买的服务器
                 this->mNoHasVm.emplace_back(s);
                 this->mServerId++;
@@ -593,7 +625,9 @@ void Solution::judge() {
         }
 
         /// (2) 迁移
-        if(i == 0 || i > this->mDays-300){
+        //cout << "(migration, 0)" << endl;
+        //this->mDeployMsg.emplace_back("(migration, 0)");
+        if(i == 0 || i > int(this->mDays*0.5)){
             //cout << "(migration, 0)" << endl;
             this->mDeployMsg.emplace_back("(migration, 0)");
         }else{
@@ -608,13 +642,13 @@ void Solution::judge() {
     }
 }
 
-void Solution::getDoubleIndex2(int tid, int numSize, int cpu, int memory, vector<int> &res, vector<Server> &s) {
+void Solution::getDoubleIndex2(int tid, int numSize, int cpu, int memory, vector<int> &res, vector<Server> &s,const int* arr) {
     int end = numSize * (tid + 1);      //线程对应的开始下标
     if (tid == NUM_THREADS - 1) {       //最后一个线程，则遍历到最后
         end = s.size();
     }
     for (int i = numSize * tid; i < end; i++) {   //遍历对应的序列
-        if (s[i].A.first >= cpu && s[i].A.second >= memory && s[i].B.first >= cpu && s[i].B.second >= memory) {
+        if (s[i].A.first >= cpu && s[i].A.second >= memory && s[i].B.first >= cpu && s[i].B.second >= memory && arr[s[i].id] == 1) {
             if (!((s[i].A.first - cpu <= WASTER_LOW && s[i].A.second - memory >= WASTER_HIGH) ||
                   (s[i].A.second - memory <= WASTER_LOW && s[i].A.first - cpu >= WASTER_HIGH)
                   || (s[i].B.first - cpu <= WASTER_LOW && s[i].B.second - memory >= WASTER_HIGH) ||
@@ -626,22 +660,30 @@ void Solution::getDoubleIndex2(int tid, int numSize, int cpu, int memory, vector
     }
 }
 
-void
-Solution::getSingleIndex2(int tid, int numSize, int cpu, int memory, vector<int> &res, vector<Server> &s, vector<int> &node) {
+
+void Solution::getSingleIndex2(int tid, int numSize, int cpu, int memory, vector<int> &res, vector<Server> &s, vector<int> &node,const int* arr) {
     int end = numSize * (tid + 1);      //线程对应的开始下标
     if (tid == NUM_THREADS - 1) {       //最后一个线程，则遍历到最后
         end = s.size();
     }
     for (int i = numSize * tid; i < end; i++) {   //遍历对应的序列
-        if (s[i].A.first >= cpu && s[i].A.second >= memory) {
+        if (s[i].A.first >= cpu && s[i].A.second >= memory && arr[s[i].id] == 1) {
             if (!((s[i].A.first - cpu <= WASTER_LOW && s[i].A.second - memory >= WASTER_HIGH) ||
                   (s[i].A.second - memory <= WASTER_LOW && s[i].A.first - cpu >= WASTER_HIGH))) {
+//                if (s[i].B.first >= cpu && s[i].B.second >= memory && arr[s[i].id] == 1) {
+//                    if (!((s[i].B.first - cpu <= WASTER_LOW && s[i].B.second - memory >= WASTER_HIGH) ||
+//                          (s[i].B.second - memory <= WASTER_LOW && s[i].B.first - cpu >= WASTER_HIGH)) && s[i].B.second < s[i].A.second) {
+//                        res[tid] = i;
+//                        node[tid] = 2;
+//                        break;
+//                    }
+//                }
                 res[tid] = i;
                 node[tid] = 1;
                 break;
             }
         }
-        if (s[i].B.first >= cpu && s[i].B.second >= memory) {
+        if (s[i].B.first >= cpu && s[i].B.second >= memory && arr[s[i].id] == 1) {
             if (!((s[i].B.first - cpu <= WASTER_LOW && s[i].B.second - memory >= WASTER_HIGH) ||
                   (s[i].B.second - memory <= WASTER_LOW && s[i].B.first - cpu >= WASTER_HIGH))) {
                 res[tid] = i;
@@ -652,14 +694,48 @@ Solution::getSingleIndex2(int tid, int numSize, int cpu, int memory, vector<int>
     }
 }
 
-/// 第2个策略
-void Solution::getDoubleIndex(int tid, int numSize, int cpu, int memory, vector<int> &res, vector<Server> &s) {
+void Solution::getDoubleIndexM(int tid, int numSize, int cpu, int memory, vector<int> &res, vector<Server> &s,int serverId) {
     int end = numSize * (tid + 1);      //线程对应的开始下标
     if (tid == NUM_THREADS - 1) {       //最后一个线程，则遍历到最后
         end = s.size();
     }
     for (int i = numSize * tid; i < end; i++) {   //遍历对应的序列
-        if (s[i].A.first >= cpu && s[i].A.second >= memory && s[i].B.first >= cpu && s[i].B.second >= memory) {
+        if (s[i].A.first >= cpu && s[i].A.second >= memory && s[i].B.first >= cpu && s[i].B.second >= memory &&
+            !s[i].flag && serverId!= s[i].id) {
+            res[tid] = i;
+            break;
+        }
+    }
+}
+
+void Solution::getSingleIndexM(int tid,int numSize,int cpu,int memory,std::vector<int> &res,std::vector<Server> &s,std::vector<int> &node,int serverId){
+    int end = numSize * (tid + 1);      //线程对应的开始下标
+    if (tid == NUM_THREADS - 1) {       //最后一个线程，则遍历到最后
+        end = s.size();
+    }
+    for (int i = numSize * tid; i < end; i++) {   //遍历对应的序列
+        if (s[i].A.first >= cpu && s[i].A.second >= memory && !s[i].flag && serverId != s[i].id) {
+            res[tid] = i;
+            node[tid] = 1;       /// A结点
+            break;
+        }
+        if (s[i].B.first >= cpu && s[i].B.second >= memory && !s[i].flag && serverId != s[i].id) {
+            res[tid] = i;
+            node[tid] = 2;   /// B结点
+            break;
+        }
+    }
+}
+
+/// 第2个策略
+void Solution::getDoubleIndex(int tid, int numSize, int cpu, int memory, vector<int> &res, vector<Server> &s,const int* arr) {
+    int end = numSize * (tid + 1);      //线程对应的开始下标
+    if (tid == NUM_THREADS - 1) {       //最后一个线程，则遍历到最后
+        end = s.size();
+    }
+    for (int i = numSize * tid; i < end; i++) {   //遍历对应的序列
+        if (s[i].A.first >= cpu && s[i].A.second >= memory && s[i].B.first >= cpu && s[i].B.second >= memory &&
+            arr[s[i].id] == 1) {
             res[tid] = i;
             break;
         }
@@ -668,18 +744,24 @@ void Solution::getDoubleIndex(int tid, int numSize, int cpu, int memory, vector<
 
 /// 第2个策略
 void
-Solution::getSingleIndex(int tid, int numSize, int cpu, int memory, vector<int> &res, vector<Server> &s, vector<int> &node) {
+Solution::getSingleIndex(int tid, int numSize, int cpu, int memory, vector<int> &res, vector<Server> &s, vector<int> &node,const int* arr) {
     int end = numSize * (tid + 1);      //线程对应的开始下标
     if (tid == NUM_THREADS - 1) {       //最后一个线程，则遍历到最后
         end = s.size();
     }
     for (int i = numSize * tid; i < end; i++) {   //遍历对应的序列
-        if (s[i].A.first >= cpu && s[i].A.second >= memory) {
+        if (s[i].A.first >= cpu && s[i].A.second >= memory && arr[s[i].id] == 1) {
+//            if (s[i].B.first >= cpu && s[i].B.second >= memory && arr[s[i].id] == 1 && s[i].B.second < s[i].A.second) {
+//                res[tid] = i;
+//                node[tid] = 2;   /// B结点
+//                break;
+//            }
+
             res[tid] = i;
             node[tid] = 1;       /// A结点
             break;
         }
-        if (s[i].B.first >= cpu && s[i].B.second >= memory) {
+        if (s[i].B.first >= cpu && s[i].B.second >= memory && arr[s[i].id] == 1) {
             res[tid] = i;
             node[tid] = 2;   /// B结点
             break;
@@ -699,7 +781,6 @@ void Solution::deploy(int i, int k) {
     int j;
     int curIndex = -1;
     for (j = k; j < this->mRequest[i].size(); ++j) {
-
         /// 调试 服务器资源超标
 //        for(auto &it:this->mHasVm){
 //            if(it.A.first < 0 || it.A.second < 0 || it.B.first <0 || it.B.second <0){
@@ -708,6 +789,7 @@ void Solution::deploy(int i, int k) {
 //        }
 
         Request curReq = this->mRequest[i][j];
+
         if (curReq.requestType == "add") {     //(add, 虚拟机类型，虚拟机id)
             VMType vmType = this->mMVTypeMap[curReq.vmTypeName];    //虚拟机类型
             int curCpus = vmType.cpus;
@@ -720,7 +802,8 @@ void Solution::deploy(int i, int k) {
                 }
                 Server t = this->mNoHasVm.back();
                 this->mHasVm.emplace_back(t);           // 将没有部署虚拟机的第一个服务器，添加到队列中
-                this->mNoHasVm.pop_back();   // 删除第一个
+                this->mNoHasVm.pop_back();   // 删除最后一个
+                this->isEmpty[t.id] = 1;    /// 更新不为空
             }
 
             if (vmType.isDouble) {        /// 双结点  符合
@@ -730,7 +813,7 @@ void Solution::deploy(int i, int k) {
                 int numSize = this->mHasVm.size() / NUM_THREADS; //划分每个线程处理的序列长度
                 for (int l = 0; l < NUM_THREADS; ++l) {
                     this->mThread[l] = std::thread(&Solution::getDoubleIndex2, l, numSize, curCpus / 2, curMemory / 2,
-                                                   ref(res), ref(this->mHasVm));//调用函数要加类名，并且传引用，要用ref()
+                                                   ref(res), ref(this->mHasVm),ref(this->isEmpty));//调用函数要加类名，并且传引用，要用ref()
                 }
                 /// 等待所有线程结束，再取
                 for (auto &l : this->mThread) {
@@ -752,7 +835,7 @@ void Solution::deploy(int i, int k) {
                     for (int l = 0; l < NUM_THREADS; ++l) {
                         this->mThread[l] = std::thread(&Solution::getDoubleIndex, l, numSize, curCpus / 2,
                                                        curMemory / 2, ref(res2),
-                                                       ref(this->mHasVm));//调用函数要加类名，并且传引用，要用ref()
+                                                       ref(this->mHasVm),ref(this->isEmpty));//调用函数要加类名，并且传引用，要用ref()
                     }
                     /// 等待所有线程结束，再取
                     for (auto &l : this->mThread) {
@@ -773,9 +856,14 @@ void Solution::deploy(int i, int k) {
                             return;
                         } else {      /// 有存量
                             Server t = this->mNoHasVm.back();
-                            this->mHasVm.emplace_back(t);           // 将没有部署虚拟机的第一个服务器，添加到队列中
-                            this->mNoHasVm.pop_back();   // 删除第一个
-                            curIndex = this->mHasVm.size() - 1;
+                            if(t.id <= this->mHasVm.size() -1){     /// 之前放过
+                                this->mHasVm[t.id] = t;
+                            }else{  /// 之前没有放过
+                                this->mHasVm.emplace_back(t);           // 将没有部署虚拟机的第一个服务器，添加到队列中
+                            }
+                            this->isEmpty[t.id] = 1;
+                            this->mNoHasVm.pop_back();   // 删除最后一个
+                            curIndex = t.id;
                         }
                     }
 
@@ -813,7 +901,7 @@ void Solution::deploy(int i, int k) {
 
                 for (int l = 0; l < NUM_THREADS; ++l) {
                     this->mThread[l] = std::thread(&Solution::getSingleIndex2, l, numSize, curCpus, curMemory, ref(res),
-                                                   ref(this->mHasVm), ref(node));   //调用函数要加类名，并且传引用，要用ref()
+                                                   ref(this->mHasVm), ref(node),ref(this->isEmpty));   //调用函数要加类名，并且传引用，要用ref()
                 }
                 /// 等待所有线程结束，再取
                 for (auto &l : this->mThread) {
@@ -845,7 +933,7 @@ void Solution::deploy(int i, int k) {
                     for (int l = 0; l < NUM_THREADS; ++l) {
                         this->mThread[l] = std::thread(&Solution::getSingleIndex, l, numSize, curCpus, curMemory,
                                                        ref(res2), ref(this->mHasVm),
-                                                       ref(node));   //调用函数要加类名，并且传引用，要用ref()
+                                                       ref(node),ref(this->isEmpty));   //调用函数要加类名，并且传引用，要用ref()
                     }
                     /// 等待所有线程结束，再取
                     for (auto &l : this->mThread) {
@@ -874,9 +962,14 @@ void Solution::deploy(int i, int k) {
                             return;
                         } else {      // 有存量
                             Server t = this->mNoHasVm.back();
-                            this->mHasVm.emplace_back(t);           // 将没有部署虚拟机的第一个服务器，添加到队列中
-                            this->mNoHasVm.pop_back();   // 删除第一个
-                            curIndex = this->mHasVm.size() - 1;
+                            if(t.id <= this->mHasVm.size() -1){     /// 之前放过
+                                this->mHasVm[t.id] = t;
+                            }else{  /// 之前没有放过
+                                this->mHasVm.emplace_back(t);           // 将没有部署虚拟机的第一个服务器，添加到队列中
+                            }
+                            this->isEmpty[t.id] = 1;   /// 更新
+                            this->mNoHasVm.pop_back();   // 删除最后一个
+                            curIndex = t.id;
 
                             this->mHasVm[curIndex].A.first -= curCpus;
                             this->mHasVm[curIndex].A.second -= curMemory;
@@ -926,85 +1019,33 @@ void Solution::deploy(int i, int k) {
             int curMemory = vmTypeTmp.memory;
             int targetServerId = this->vmToServer[curReq.vmId].first;
 
-            /// 先在删除的序列找
-            int index = -1;
-            for (int l = 0; l < this->mHasVmDel.size(); l++) { //找出下标
-                if (this->mHasVmDel[l].id == targetServerId) {
-                    index = l;
-                    break;
+            int index = targetServerId;     /// 服务器id = 下标
+
+            if (vmTypeTmp.isDouble) {//是否为双结点
+                this->mHasVm[index].A.first += curCpus / 2;    //先按vmid找服务器id，再找到对应服务器
+                this->mHasVm[index].A.second += curMemory / 2;
+                this->mHasVm[index].B.first += curCpus / 2;
+                this->mHasVm[index].B.second += curMemory / 2;
+            } else {
+                if (this->vmToServer[curReq.vmId].second == 1) {  //A结点
+                    this->mHasVm[index].A.first += curCpus;    //先按vmid找服务器id，再找到对应服务器
+                    this->mHasVm[index].A.second += curMemory;
+                } else if (this->vmToServer[curReq.vmId].second == 2) { //B结点
+                    this->mHasVm[index].B.first += curCpus;
+                    this->mHasVm[index].B.second += curMemory;
                 }
             }
-            if(index != -1){         /// 删除序列找到了
-                if (vmTypeTmp.isDouble) {//是否为双结点
-                    this->mHasVmDel[index].A.first += curCpus / 2;    //先按vmid找服务器id，再找到对应服务器
-                    this->mHasVmDel[index].A.second += curMemory / 2;
-                    this->mHasVmDel[index].B.first += curCpus / 2;
-                    this->mHasVmDel[index].B.second += curMemory / 2;
-                } else {
-                    if (this->vmToServer[curReq.vmId].second == 1) {  //A结点
-                        this->mHasVmDel[index].A.first += curCpus;    //先按vmid找服务器id，再找到对应服务器
-                        this->mHasVmDel[index].A.second += curMemory;
-                    } else if (this->vmToServer[curReq.vmId].second == 2) { //B结点
-                        this->mHasVmDel[index].B.first += curCpus;
-                        this->mHasVmDel[index].B.second += curMemory;
-                    }
-                }
 
-                //ServerType src = mServerTypeMap[this->mServer[targetServerId].serverTypeName];
-                /// 删除虚拟机后，判断是否为服务器是否没有部署虚拟机了
-                if (this->mHasVmDel[index].A.first + this->mHasVmDel[index].B.first == mSelectedServerType.cpus &&
-                    this->mHasVmDel[index].A.second + this->mHasVmDel[index].B.second == mSelectedServerType.memory) {
-                    this->mNoHasVm.emplace_back(this->mHasVmDel[index]);     //将服务器添加到空的队列中
-                    sort(this->mNoHasVm.begin(), this->mNoHasVm.end(), serverCmpId);  //按id从大到小排序
-                    auto iter = this->mHasVmDel.begin();
-                    while (iter != this->mHasVmDel.end()) {      //删除对应的服务器
-                        if ((*iter).id == targetServerId) {
-                            this->mHasVmDel.erase(iter);
-                            break;
-                        }
-                        iter++;
-                    }
-                }
-            }
-            else{        ///  删除序列没有找到        在原来部署虚拟机的服务器序列找
-                for (int l = 0; l < this->mHasVm.size(); l++) { //找出下标
-                    if (this->mHasVm[l].id == targetServerId) {
-                        index = l;
-                        break;
-                    }
-                }
-                if (vmTypeTmp.isDouble) {//是否为双结点
-                    this->mHasVm[index].A.first += curCpus / 2;    //先按vmid找服务器id，再找到对应服务器
-                    this->mHasVm[index].A.second += curMemory / 2;
-                    this->mHasVm[index].B.first += curCpus / 2;
-                    this->mHasVm[index].B.second += curMemory / 2;
-                } else {
-                    if (this->vmToServer[curReq.vmId].second == 1) {  //A结点
-                        this->mHasVm[index].A.first += curCpus;    //先按vmid找服务器id，再找到对应服务器
-                        this->mHasVm[index].A.second += curMemory;
-                    } else if (this->vmToServer[curReq.vmId].second == 2) { //B结点
-                        this->mHasVm[index].B.first += curCpus;
-                        this->mHasVm[index].B.second += curMemory;
-                    }
-                }
-
-                //ServerType src = mServerTypeMap[this->mServer[targetServerId].serverTypeName];
-                /// 删除虚拟机后，判断是否为服务器是否没有部署虚拟机了
-                if (this->mHasVm[index].A.first + this->mHasVm[index].B.first == mSelectedServerType.cpus &&
-                    this->mHasVm[index].A.second + this->mHasVm[index].B.second == mSelectedServerType.memory) {
-                    this->mNoHasVm.emplace_back(this->mHasVm[index]);     //将服务器添加到空的队列中
-                    sort(this->mNoHasVm.begin(), this->mNoHasVm.end(), serverCmpId);  //按id从大到小排序
-                    auto iter = this->mHasVm.begin();
-                    while (iter != this->mHasVm.end()) {      //删除对应的服务器
-                        if ((*iter).id == targetServerId) {
-                            this->mHasVm.erase(iter);
-                            break;
-                        }
-                        iter++;
-                    }
-                }
+            //ServerType src = mServerTypeMap[this->mServer[targetServerId].serverTypeName];
+            /// 删除虚拟机后，判断是否为服务器是否没有部署虚拟机了
+            if (this->mHasVm[index].A.first + this->mHasVm[index].B.first == mSelectedServerType.cpus &&
+                this->mHasVm[index].A.second + this->mHasVm[index].B.second == mSelectedServerType.memory) {
+                this->mNoHasVm.emplace_back(this->mHasVm[index]);     //将服务器添加到空的队列中
+                this->isEmpty[index] = 0;
+                //sort(this->mNoHasVm.begin(), this->mNoHasVm.end(), serverCmpId);  //按id从大到小排序
             }
         }
+
     }
 }
 

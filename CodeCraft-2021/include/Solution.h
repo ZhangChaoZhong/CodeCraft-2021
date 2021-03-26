@@ -13,7 +13,7 @@
 #include "common.h"
 #include "Helper.h"
 #define NUM_THREADS 4
-#define WASTER_LOW 2
+#define WASTER_LOW 1
 #define WASTER_HIGH 15
 
 class Solution {
@@ -60,15 +60,20 @@ public:
     static bool serverCmpId(const Server &a,const Server &b){                    //id从大到小
         return a.id > b.id;     //不能写>=
     };
+    static bool serverCmpIdDel(const Server &a,const Server &b){                    //id从小到大
+        return a.id < b.id;     //不能写>=
+    };
+
     static bool serverCmpCM(const Server &a,const Server &b){                    //按CPU+内存的剩余总量 从小到大排序
         return (a.A.first+a.A.second+a.B.first+a.B.second) < (b.A.first+b.A.second+b.B.first+b.B.second);     //不能写>=
     };
 
-    static void getDoubleIndex(int tid,int numSize,int cpu,int memory,std::vector<int> &res,std::vector<Server> &s); //获取下一个服务器的下标
-    static void getSingleIndex(int tid,int numSize,int cpu,int memory,std::vector<int> &res,std::vector<Server> &s,std::vector<int> &node); //获取下一个服务器的下标
-    static void getDoubleIndex2(int tid,int numSize,int cpu,int memory,std::vector<int> &res,std::vector<Server> &s);
-    static void getSingleIndex2(int tid,int numSize,int cpu,int memory,std::vector<int> &res,std::vector<Server> &s,std::vector<int> &node);
-
+    static void getDoubleIndex(int tid,int numSize,int cpu,int memory,std::vector<int> &res,std::vector<Server> &s,const int* arr); //获取下一个服务器的下标
+    static void getSingleIndex(int tid,int numSize,int cpu,int memory,std::vector<int> &res,std::vector<Server> &s,std::vector<int> &node,const int* arr); //获取下一个服务器的下标
+    static void getDoubleIndex2(int tid,int numSize,int cpu,int memory,std::vector<int> &res,std::vector<Server> &s,const int* arr);
+    static void getSingleIndex2(int tid,int numSize,int cpu,int memory,std::vector<int> &res,std::vector<Server> &s,std::vector<int> &node,const int* arr);
+    static void  getDoubleIndexM(int tid,int numSize,int cpu,int memory,std::vector<int> &res,std::vector<Server> &s,int serverId);
+    static void  getSingleIndexM(int tid,int numSize,int cpu,int memory,std::vector<int> &res,std::vector<Server> &s,std::vector<int> &node,int serverId);
 
 public:
     std::string mFilename;          //输入的训练文件名
@@ -116,6 +121,7 @@ public:
 
     std::vector<ServerType> mSelectServerType;   //选取的服务器类型
 
+    int isEmpty[10000];      // 0为空  1不为空
     std::vector<Server> mHasVm; //已经有部署虚拟机的服务器
     std::vector<Server> mNoHasVm; //没有部署虚拟机的服务器
 
@@ -128,6 +134,7 @@ public:
 
     int mVmIndex;       /// 虚拟机初始化的下标
     std::vector<int> mCurSaveVM;        /// 当天之前的存在虚拟机数量
+    int mMigriationNum;
 };
 
 
