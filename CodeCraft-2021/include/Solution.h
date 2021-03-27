@@ -51,7 +51,12 @@ public:
     static bool serverTypeCmpPercent(const ServerType &a,const ServerType &b){
         return a.percent < b.percent;
     }
-
+    static bool serverTypeCmpPCM(const ServerType &a,const ServerType &b){           //按价格/(2内存+cpu) 从小到大排序
+        return a.p_cm < b.p_cm;
+    }
+    static bool serverTypeCmpPC(const ServerType &a,const ServerType &b){           //按价格/(2内存+cpu) 从小到大排序
+        return a.pc < b.pc;
+    }
     static bool serverTypeCmpEnergyCost(const ServerType &a,const ServerType &b){           //按能耗从小到大排序
         return a.energyCost < b.energyCost;
     }
@@ -77,7 +82,8 @@ public:
     static void getSingleIndex2(int tid,int numSize,int cpu,int memory,std::vector<int> &res,std::vector<Server> &s,std::vector<int> &node,const int* arr);
     static void  getDoubleIndexM(int tid,int numSize,int cpu,int memory,std::vector<int> &res,std::vector<Server> &s,int serverId,const int* arr);
     static void  getSingleIndexM(int tid,int numSize,int cpu,int memory,std::vector<int> &res,std::vector<Server> &s,std::vector<int> &node,int serverId,const int* arr);
-
+    static void  getDoubleIndexM1(int tid,int numSize,int cpu,int memory,std::vector<int> &res,std::vector<Server> &s,int serverId);
+    static void  getSingleIndexM1(int tid,int numSize,int cpu,int memory,std::vector<int> &res,std::vector<Server> &s,std::vector<int> &node,int serverId);
 public:
     std::string mFilename;          //输入的训练文件名
     enum { SERVER_TYPE_NUM = 100, VM_TYPE_NUM = 1000,SERVER_NUM=100010}; // 枚举常量
