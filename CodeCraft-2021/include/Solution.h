@@ -9,6 +9,7 @@
 #include <vector>
 #include <set>
 #include <unordered_map>
+#include <map>
 #include <thread>
 #include "common.h"
 #include "Helper.h"
@@ -71,6 +72,9 @@ public:
     static bool serverCmpExtraMax(const Server &a,const Server &b){                    //按剩余的cpu+内存的值，从大到小排序
         return (a.A.first+a.A.second+a.B.first+a.B.second) > (b.A.first+b.A.second+b.B.first+b.B.second);
     };
+    static bool serverCmpExtraMin(const Server &a,const Server &b){                    //按剩余的cpu+内存的值，从小到大排序
+        return (a.A.first+a.A.second+a.B.first+a.B.second) < (b.A.first+b.A.second+b.B.first+b.B.second);
+    };
     static void getDoubleIndex(int tid,int numSize,int cpu,int memory,std::vector<int> &res,std::vector<Server> &s,const int* arr); //获取下一个服务器的下标
     static void getSingleIndex(int tid,int numSize,int cpu,int memory,std::vector<int> &res,std::vector<Server> &s,std::vector<int> &node,const int* arr); //获取下一个服务器的下标
     static void getDoubleIndex2(int tid,int numSize,int cpu,int memory,std::vector<int> &res,std::vector<Server> &s,const int* arr);
@@ -88,15 +92,15 @@ public:
     int mServerTypeNum;                                                  // 实际的服务类型数量
     ServerType mServerType[SERVER_TYPE_NUM];                             //服务器类型 数组
     ServerType mServerTypeByPercent[SERVER_TYPE_NUM];                    //按比例从小到大排序的服务器类型 数组
-    std::unordered_map<std::string, ServerType> mServerTypeMap;          //<服务器类型名，服务器类型结构体>
+    std::map<std::string, ServerType> mServerTypeMap;          //<服务器类型名，服务器类型结构体>
 
     /// 虚拟机
     int mVMTypeNum;                                                      //实际的虚拟机类型数量
     VMType mVMType[VM_TYPE_NUM];                                         //虚拟机类型 数组
-    std::unordered_map<std::string, VMType> mMVTypeMap;                  //<虚拟机类型名，虚拟机类型结构体>
-    std::unordered_map<int,std::pair<int,int>> vmToServer;               //虚拟机id映射到<服务器id,结点(0双结点，1:A结点,2:B结点)>
-    std::unordered_map<int,std::string> vmToVMType;                      //<虚拟机id映射到虚拟机类型名>
-    std::unordered_map<std::string,std::string> vmTypeToServerType;      //<虚拟机类型名映射到服务器类型名>
+    std::map<std::string, VMType> mMVTypeMap;                  //<虚拟机类型名，虚拟机类型结构体>
+    std::map<int,std::pair<int,int>> vmToServer;               //虚拟机id映射到<服务器id,结点(0双结点，1:A结点,2:B结点)>
+    std::map<int,std::string> vmToVMType;                      //<虚拟机id映射到虚拟机类型名>
+    std::map<std::string,std::string> vmTypeToServerType;      //<虚拟机类型名映射到服务器类型名>
 
 
     /// 请求
@@ -107,8 +111,8 @@ public:
     /// 划分，选取服务器类型
     int mNumServerTypeByPercent;                                         //按比值划分的服务器类型数量
     std::vector<std::pair<std::string,int>> serverSelected;              //选取的服务器类型 <服务器类型，CPU/内存比例>
-    std::unordered_map<std::string,int> serverSelectedIndex;             //<服务器类型,serverSelected下标>
-    std::unordered_map<int,std::string> indexSelectedServer;             //<serverSelected下标,服务器类型>
+    std::map<std::string,int> serverSelectedIndex;             //<服务器类型,serverSelected下标>
+    std::map<int,std::string> indexSelectedServer;             //<serverSelected下标,服务器类型>
 
     /// 计算最大内存，以及相应的服务器需求量
     std::vector<long long> mMemoryPerDay;                   //存储每天的对应的服务器类型的内存实际的需求量
@@ -138,7 +142,7 @@ public:
     int mVmIndex;       /// 虚拟机初始化的下标
     std::vector<int> mCurSaveVM;        /// 当天之前的存在虚拟机数量
     int mMigriationNum;
-    std::unordered_map<int,std::vector<int>> mServerIdToVMSeq;      /// 服务器id映射到虚拟机id序列
+    std::map<int,std::vector<int>> mServerIdToVMSeq;      /// 服务器id映射到虚拟机id序列
 };
 
 
